@@ -1,7 +1,6 @@
 package main
 
 import (
-
 	. "github.com/Cyber-cicco/jerminal/jerminal"
 )
 
@@ -10,23 +9,30 @@ func main() {
 
 	// Should be an async func
 	pipeline := SetPipeline(
-		GetAgent("agent1"),
+		Agent("agent1"),
 		RunOnce(
-			Exec(
-				SH("git", "remote add origin git@github.com:Cyber-cicco/leeveen-backend.git"),
-			),
+			Exec(SH("git", "clone git@github.com:Cyber-cicco/leeveen-backend.git")),
 			Exec(SH("git", "checkout main")),
 		),
-		SetStages(
-			SetStage(
-				"Git gud",
+		Stages("Pull stage",
+			Stage(
+				"Git Pull",
 				Exec(SH("git", "pull")),
-			),
-			SetStage(
-				"build project",
-				Exec(SH("go", "build")),
-			),
+			).
+                Retry(3, 10),
 		),
+		Stages("Test Stages",
+			Stage(
+				"Test controller",
+				ExecDefer(CD("internals/controller")),
+				Exec(SH("go", "test")),
+			),
+			Stage(
+				"Test services",
+				ExecDefer(CD("internals/services")),
+				Exec(SH("go", "test")),
+			),
+		).Parallel(),
 	)
 
 }
