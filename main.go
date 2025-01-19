@@ -7,7 +7,6 @@ import (
 // This is what i want my jerminal application workflow to look like
 func main() {
 
-	// Should be an async func
 	pipeline := SetPipeline(
 		Agent("agent1"),
 		RunOnce(
@@ -19,20 +18,36 @@ func main() {
 				"Git Pull",
 				Exec(SH("git", "pull")),
 			).
-                Retry(3, 10),
+				Retry(3, 10),
 		),
 		Stages("Test Stages",
 			Stage(
 				"Test controller",
 				ExecDefer(CD("internals/controller")),
 				Exec(SH("go", "test")),
-			),
+			).DontStopIfErr(),
 			Stage(
 				"Test services",
 				ExecDefer(CD("internals/services")),
 				Exec(SH("go", "test")),
-			),
+			).DontStopIfErr(),
 		).Parallel(),
+		Stages("Build Stages",
+			Stage("Docker Build",
+				ExecTryCatch(
+					SH("docker", "build leeveen-backend"),
+					Stage("Docker remove",
+						Exec(SH("docker", "stop leeveen-backend")),
+						Exec(SH("docker", "remove leeveen-backend")),
+					),
+				),
+			).Retry(1, 1),
+			Stage("Docker deploy",
+				ExecTryCatch(
+					SH("docker", "compose up"),
+					Exec(SH("docker", "compose down")),
+				),
+			).Retry(1, 1),
+		),
 	)
-
 }

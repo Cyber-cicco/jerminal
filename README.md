@@ -27,6 +27,8 @@ Set up a linux environnement with the required dependencies to build your projec
 Write a go script that describes your pipeline and launches the Jerminal server.
 Tada, you have your CI / CD without having to bother with Jenkins.
 
+Check main.go to have a overview of what i would want to acheive with the API
+
 
 
 

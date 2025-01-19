@@ -14,7 +14,7 @@ import (
 //diretory, and one to execute later that gets the puts the current directory back to the original
 //
 // It should be used with the ExecDefer function
-func CD(dir string) (func(p *Pipeline) error, Executable){
+func CD(dir string) (func(p *Pipeline) error, executable){
 	return func(p *Pipeline) error {
 		// Reject absolute paths
 		if filepath.IsAbs(dir) {
