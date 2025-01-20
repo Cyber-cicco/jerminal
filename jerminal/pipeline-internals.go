@@ -48,7 +48,7 @@ type executor struct {
 
 // onceRunner is a stage that should execute only once for a pipeline that
 // can be executed multiple times
-// 
+//
 // The first time it runs, it should execute the commands and caches the current
 // state of the directory
 //
@@ -96,6 +96,20 @@ func (p *Pipeline) schedule() {
 // TODO : implement the retries
 func (s *stage) Execute(p *Pipeline) error {
 
+    defered := func() error {
+		for i, ex := range s.executors {
+			s.Diagnostic.NewDE(DEBUG, "Executing clean up of stage")
+			if ex.deferedFunc != nil {
+				err := ex.deferedFunc.Execute(p)
+				if err != nil {
+					s.Diagnostic.NewDE(ERROR, fmt.Sprintf("Stage %s got error %v in execution n°%d", s.name, err, i))
+					return err
+				}
+			}
+		}
+        return nil
+	}
+
 	s.Diagnostic = NewDiag(fmt.Sprintf("%s#%d %s", p.identifier, s.executionOrder, s.name))
 
 	beginning := time.Now().UnixMilli()
@@ -107,20 +121,16 @@ func (s *stage) Execute(p *Pipeline) error {
 		err := ex.Execute(p)
 		if err != nil {
 			s.Diagnostic.NewDE(ERROR, fmt.Sprintf("Stage %s got error %v in execution n°%d", s.name, err, i))
+            defered()
 			return err
 		}
 	}
 
-	for i, ex := range s.executors {
-		s.Diagnostic.NewDE(DEBUG, "Executing clean up of stage")
-		if ex.deferedFunc != nil {
-			err := ex.deferedFunc.Execute(p)
-			if err != nil {
-				s.Diagnostic.NewDE(ERROR, fmt.Sprintf("Stage %s got error %v in execution n°%d", s.name, err, i))
-				return err
-			}
-		}
-	}
+    err := defered()
+    
+    if err != nil {
+        return err
+    }
 
 	end := time.Now().UnixMilli()
 	s.elapsedTime = end - beginning
