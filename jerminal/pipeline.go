@@ -12,15 +12,20 @@ import (
 // Pipeline represents the main execution context for stages and executors.
 // It uses an Agent to manage execution and a directory for workspace.
 type Pipeline struct {
-	Agent         *state.Agent     // Agent executing the Pipeline
-	name          string           // human readable name of the pipeline
-	mainDirectory string           // Base directory of the pipeline
-	directory     string           // Working directory for the pipeline.
-	id            uuid.UUID        // UUID
-	timeRan       uint32           // Number of time the pipeline ran
-	events        []pipelineEvents // components to be executed
-	inerror       bool             // Indicate if a fatal error has been encountered
-	Diagnostic    *Diagnostic      // Infos about de the process
+	Agent         *state.Agent           // Agent executing the Pipeline
+	name          string                 // human readable name of the pipeline
+	mainDirectory string                 // Base directory of the pipeline
+	directory     string                 // Working directory for the pipeline.
+	id            uuid.UUID              // UUID
+	timeRan       uint32                 // Number of time the pipeline ran
+	events        []pipelineEvents       // components to be executed
+	inerror       bool                   // Indicate if a fatal error has been encountered
+	State         *state.ApplicationState // L'état de l'application
+	Diagnostic    *Diagnostic            // Infos about de the process
+
+	// Copy of the config that should be initialized at start of
+	// the pipeline so it keeps it's state even if there is a change during the execution
+	Config *state.Config
 }
 
 type DEImp uint8
@@ -78,6 +83,7 @@ func (p *Pipeline) ExecutePipeline() error {
 	diag.NewDE(INFO, "starting main loop")
 
 	p.Diagnostic = diag
+    p.Config = p.State.CloneConfig()
 
 	defer func() {
 		err := p.Agent.CleanUp()

@@ -2,6 +2,7 @@ package state
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"path"
 	"sync"
@@ -10,7 +11,7 @@ import (
 // ApplicationState represents global state of the application
 type ApplicationState struct {
 	sync.RWMutex
-	Config
+	*Config
 	agents map[string]*Agent // map of identifiers to their agent
 }
 
@@ -18,15 +19,51 @@ type ApplicationState struct {
 // and cleans it up afterward. The Identifier uniquely identifies the agent.
 type Agent struct {
 	sync.Mutex
-	BusySig    *sync.Cond // Signal informing if the Agent is busy
-	identifier string     // unique string representing an Agent
-	Busy       bool       // true if the agent is executing a pipeline
+	BusySig    *sync.Cond        // Signal informing if the Agent is busy
+	identifier string            // unique string representing an Agent
+	Busy       bool              // true if the agent is executing a pipeline
+	State      *ApplicationState // The application state
 }
 
-// STATE represents a mutable structure of application state
-var STATE ApplicationState = ApplicationState{
-	Config: Config{},
-	agents: make(map[string]*Agent),
+var (
+	state *ApplicationState
+	once  sync.Once
+)
+
+// Creates an object containing infos about the application process
+//
+// SHOULD ONLY BE CALLED ONCE
+func initializeApplicationState(conf *Config) {
+	state = &ApplicationState{
+		agents: make(map[string]*Agent),
+		Config: conf,
+	}
+}
+
+// Gets the current state of the application with a default config. 
+// Updates the state of the config, so if you change the config file
+// between getting the previous state and this one, it will run with
+// the updated config
+//
+// Mutually exclusive with GetStateCustomConf
+//
+// Should be used by default
+func GetState() (*ApplicationState, error) {
+	once.Do(func() {
+		conf := &Config{}
+		initializeApplicationState(conf)
+	})
+	return state, state.UpdateConfig()
+}
+
+// Gets the current state of the application with a custom config. 
+//
+// Mutually exclusive with GetState
+//
+// Should be used for tests
+func GetStateCustomConf(conf *Config) *ApplicationState {
+	once.Do(func() { initializeApplicationState(conf) })
+	return state
 }
 
 // Initialize first waits until the agent has finished his
@@ -41,10 +78,10 @@ func (a *Agent) Initialize() (string, error) {
 	a.Unlock()
 
 	// Create the agent directory
-	path := path.Join(STATE.AgentDir, a.identifier)
-	_, err := os.Stat(path)
+	path := path.Join(a.State.AgentDir, a.identifier)
+	infos, err := os.Stat(path)
 	if err == nil {
-		return "", errors.New("directory should not exist, agent has not cleaned up his directory from previous job")
+		return "", errors.New(fmt.Sprintf("directory should not exist, agent has not cleaned up his directory from previous job. %s", infos.Name()))
 	}
 	return path, os.Mkdir(path, os.ModePerm)
 }
@@ -53,14 +90,14 @@ func (a *Agent) Initialize() (string, error) {
 // and cleans up it's directory
 func (a *Agent) CleanUp() error {
 
-    defer a.Unlock()
+	defer a.Unlock()
 	a.Lock()
 
-	path := path.Join(STATE.AgentDir, a.identifier)
-    err := os.RemoveAll(path)
-    if err != nil {
-        return err
-    }
+	path := path.Join(a.State.AgentDir, a.identifier)
+	err := os.RemoveAll(path)
+	if err != nil {
+		return err
+	}
 	a.Busy = false
 	a.BusySig.Signal()
 
@@ -76,9 +113,21 @@ func (s *ApplicationState) GetAgent(id string) *Agent {
 		ag = &Agent{
 			identifier: id,
 			Busy:       false,
+			State:      s,
 		}
 		ag.BusySig = sync.NewCond(&ag.Mutex)
 		s.agents[id] = ag
 	}
 	return ag
+}
+
+func (s *ApplicationState) CloneConfig() *Config {
+    s.Config.Lock()
+    defer s.Config.Unlock()
+    conf := Config{
+    	AgentDir:             s.AgentDir,
+    	PipelineDir:          s.PipelineDir,
+    	jerminalResourcePath: s.jerminalResourcePath,
+    }
+    return &conf
 }

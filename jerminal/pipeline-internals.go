@@ -57,6 +57,9 @@ type onceRunner struct {
 // Exec defines a function type that performs a task within a pipeline.
 type Exec func(p *Pipeline) error
 
+// Provides the agent for the pipeline
+type AgentProvider func(p *Pipeline) *state.Agent
+
 // pipelineEvents represents a generic event of the pipeline.
 // Each event must be able to execute within a pipeline and provide metadata.
 //
@@ -86,8 +89,8 @@ func (p *Pipeline) schedule() {
 // TODO : implement the retries
 func (s *stage) Execute(p *Pipeline) error {
 
-    var lastErr error
-    defer func() {
+	var lastErr error
+	defer func() {
 		for i, ex := range s.executors {
 			s.Diagnostic.NewDE(DEBUG, "Executing clean up of stage")
 			if ex.deferedFunc != nil {
@@ -95,7 +98,7 @@ func (s *stage) Execute(p *Pipeline) error {
 				if err != nil {
 					s.Diagnostic.NewDE(ERROR, fmt.Sprintf("Stage %s got error %v in execution n°%d", s.name, err, i))
 					lastErr = err
-                    return
+					return
 				}
 			}
 		}
@@ -120,7 +123,7 @@ func (s *stage) Execute(p *Pipeline) error {
 	s.elapsedTime = end - beginning
 
 	s.Diagnostic.NewDE(INFO, fmt.Sprintf("process %s finished in %d ms", s.name, s.elapsedTime))
-    return lastErr
+	return lastErr
 }
 
 func (s *stage) GetExecutionOrder() uint32 {
@@ -148,16 +151,16 @@ func (s *stages) ExecuteInPipeline(p *Pipeline) error {
 			wg.Add(1)
 			go func(p *Pipeline, s *stage) {
 				defer wg.Done()
-                err := s.Execute(p)
-                if err != nil {
-                    if s.shouldStopIfError {
-                        errchan <- err
-                        return
-                    }
-                    diag.Lock()
-                    defer diag.Unlock()
-                    diag.NewDE(WARN, fmt.Sprintf("got non blocking error in stage %s : %v", s.name, err))
-                }
+				err := s.Execute(p)
+				if err != nil {
+					if s.shouldStopIfError {
+						errchan <- err
+						return
+					}
+					diag.Lock()
+					defer diag.Unlock()
+					diag.NewDE(WARN, fmt.Sprintf("got non blocking error in stage %s : %v", s.name, err))
+				}
 			}(p, s)
 		}
 		wg.Wait()
@@ -177,10 +180,10 @@ func (s *stages) ExecuteInPipeline(p *Pipeline) error {
 		for _, stage := range s.stages {
 			err := stage.Execute(p)
 			if err != nil {
-                if stage.shouldStopIfError {
-                    return err
-                }
-                diag.NewDE(WARN, fmt.Sprintf("got non blocking error in stage %s : %v", s.name, err))
+				if stage.shouldStopIfError {
+					return err
+				}
+				diag.NewDE(WARN, fmt.Sprintf("got non blocking error in stage %s : %v", s.name, err))
 			}
 		}
 
@@ -302,14 +305,28 @@ func ExecDefer(ex Exec, defered executable) executable {
 }
 
 // Agent retrieves an agent with the specified identifier.
-func Agent(id string) *state.Agent {
-    return state.STATE.GetAgent(id)
+func Agent(id string) AgentProvider {
+	return func(p *Pipeline) *state.Agent {
+		return p.State.GetAgent(id)
+	}
 }
 
 // SetPipeline initializes a new pipeline with the specified agent and components.
-func SetPipeline(name string, agent *state.Agent, events ...pipelineEvents) Pipeline {
-	return Pipeline{
-		Agent:         agent,
+//
+// It gets the current state of the app and gives back the Pipeline
+func SetPipeline(name string, agent AgentProvider, events ...pipelineEvents) (*Pipeline, error) {
+    s, err := state.GetState()
+    if err != nil {
+        return nil, err
+    }
+    return setPipelineWithState(name, agent, s, events...), nil
+}
+
+// setPipelineWithState gets a new pipeline with a state
+//
+// Only in testing should it be used by something else than SetPipeline
+func setPipelineWithState(name string, agent AgentProvider, state *state.ApplicationState, events ...pipelineEvents) *Pipeline {
+    p := Pipeline{
 		name:          name,
 		id:            uuid.New(),
 		mainDirectory: "",
@@ -317,7 +334,10 @@ func SetPipeline(name string, agent *state.Agent, events ...pipelineEvents) Pipe
 		events:        events,
 		Diagnostic:    &Diagnostic{},
 		timeRan:       0,
+		State:         state,
 	}
+    p.Agent = agent(&p)
+    return &p
 }
 
 // ExecuteInPipeline runs all executables in a OnceRunner.

@@ -1,4 +1,4 @@
 {
-    "agent-dir": "~/.jerminal/agent",
-    "pipeline-dir": "~/.jerminal/agent"
+    "agent-dir": "$HOME/.jerminal/agent",
+    "pipeline-dir": "$HOME/.jerminal/agent"
 }
