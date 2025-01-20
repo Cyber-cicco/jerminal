@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/Cyber-cicco/jerminal/jerminal/config"
 	"github.com/google/uuid"
 )
 
@@ -12,10 +13,13 @@ import (
 type Pipeline struct {
 	agent
 	name          string           // human readable name of the pipeline
-	MainDirectory string           // Base directory of the pipeline
-	Directory     string           // Working directory for the pipeline.
+	mainDirectory string           // Base directory of the pipeline
+	directory     string           // Working directory for the pipeline.
+	id            uuid.UUID        // UUID
+	timeRan       uint32           // Number of time the pipeline ran
 	events        []pipelineEvents // components to be executed
-	Diagnostics   []*Diagnostic
+	inerror       bool             // Indicate if a fatal error has been encountered
+	Diagnostic    *Diagnostic      // Infos about de the process
 }
 
 type DEImp uint8
@@ -31,7 +35,7 @@ const (
 // Informations about an element of the pipeline
 type Diagnostic struct {
 	label      string             // Name of the diagnostic
-	identifier string             // Unique identifier of the diagnostic
+	identifier uuid.UUID          // Unique identifier of the diagnostic
 	date       time.Time          // Time the diagnostic was written
 	inerror    bool               // Tells if the attached process should be considered in error
 	events     []*DiagnosticEvent // Infos about what happened in the process
@@ -41,7 +45,7 @@ type Diagnostic struct {
 func NewDiag(name string) *Diagnostic {
 	return &Diagnostic{
 		label:      name,
-		identifier: uuid.NewString(),
+		identifier: uuid.New(),
 		date:       time.Now(),
 		inerror:    false,
 		events:     []*DiagnosticEvent{},
@@ -66,7 +70,21 @@ type DiagnosticEvent struct {
 //
 // Should be called when the server asks to
 func (p *Pipeline) ExecutePipeline() {
+	diag := NewDiag(fmt.Sprintf("%s#%s", p.name, p.id.String()))
+	diag.NewDE(INFO, "starting main loop")
+
+	p.Diagnostic = diag
+	p.mainDirectory = config.CONF.AgentDir
+	p.directory = p.mainDirectory
+
 	for _, comp := range p.events {
-		comp.ExecuteInPipeline(p)
+		err := comp.ExecuteInPipeline(p)
+		if err != nil {
+			if comp.GetShouldStopIfError() {
+				p.inerror = true
+                diag.NewDE(ERROR, "got blocking error in executable %s : %v", comp.GetName(), err)
+                break
+			}
+		}
 	}
 }

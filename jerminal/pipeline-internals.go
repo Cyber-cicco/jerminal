@@ -2,9 +2,10 @@ package jerminal
 
 import (
 	"fmt"
-	"log"
 	"sync"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 // agent represents a process that executes a pipeline in its personal directory
@@ -34,7 +35,7 @@ type stage struct {
 	tries             uint16      // Number of times you have to try to execute the stage before accepting failure
 	delay             uint16      // Delay between the tries
 	executionOrder    uint32      // Execution order in the stages
-	Diagnostic        *Diagnostic
+	Diagnostic        *Diagnostic // Infos about the process
 }
 
 // executor represents a task within a stage. It includes a main executable
@@ -49,22 +50,27 @@ type executor struct {
 type onceRunner struct {
 	executables    []executable // List of executables to run.
 	executionOrder uint32       // Order in which the executables should be executed.
+	Diagnostic     *Diagnostic  // Infos about the process
 }
 
 // Exec defines a function type that performs a task within a pipeline.
-// It returns an error if the task fails.
 type Exec func(p *Pipeline) error
 
 // pipelineEvents represents a generic event of the pipeline.
 // Each event must be able to execute within a pipeline and provide metadata.
+//
+// Implemented by : stages, onceRunner
 type pipelineEvents interface {
 	ExecuteInPipeline(p *Pipeline) error // Executes the component within the pipeline.
 	GetExecutionOrder() uint32           // Returns the execution order of the event.
 	SetExecutionOrder(uint32)            // Sets the execution order of the event
 	GetShouldStopIfError() bool          // Indicates if the pipeline should stop on error.
+    GetName() string
 }
 
 // executable represents an entity that can be executed within a pipeline.
+// 
+// Implemented by stage, Exec, executor
 type executable interface {
 	Execute(p *Pipeline) error // Executes the entity.
 }
@@ -127,15 +133,15 @@ func (s *stage) SetExecutionOrder(order uint32) {
 
 // ExecuteInPipeline executes all the stages within the pipeline.
 func (s *stages) ExecuteInPipeline(p *Pipeline) error {
+
 	diag := NewDiag(fmt.Sprintf("%s#%s", p.name, s.name))
 	s.diagnostic = diag
-
 	beginning := time.Now().UnixMilli()
-
 	diag.NewDE(INFO, fmt.Sprintf("stage %s started", s.name))
 
+	// Parallel execution of pipelines
 	if s.parallel {
-        diag.NewDE(DEBUG, fmt.Sprintf("starting parallel tasks", s.name))
+		diag.NewDE(DEBUG, fmt.Sprintf("starting parallel tasks", s.name))
 		var wg sync.WaitGroup
 		errchan := make(chan error, len(s.stages))
 		for _, stage := range s.stages {
@@ -147,19 +153,25 @@ func (s *stages) ExecuteInPipeline(p *Pipeline) error {
 		}
 		wg.Wait()
 		close(errchan)
-        for err := range errchan {
-            if err != nil {
-                diag.NewDE(DEBUG, fmt.Sprintf("encountered error in one of the tasks. %v", err))
-                return err
-            }
-        }
+		for err := range errchan {
+			if err != nil {
+				diag.NewDE(DEBUG, fmt.Sprintf("encountered error in one of the tasks. %v", err))
+				return err
+			}
+		}
+
 	} else {
+
 		for _, stage := range s.stages {
 			err := stage.Execute(p)
+
+			// returns first error encountered in the channel
+			// maybe change that
 			if err != nil {
 				return err
 			}
 		}
+
 	}
 
 	end := time.Now().UnixMilli()
@@ -168,6 +180,10 @@ func (s *stages) ExecuteInPipeline(p *Pipeline) error {
 	diag.NewDE(INFO, fmt.Sprintf("stage %s ended successfully. Took %d ms", s.name, elapsedTime))
 
 	return nil
+}
+
+func (s *stages) GetName() string {
+    return s.name
 }
 
 // Parallel activates the parallel execution of stages
@@ -255,31 +271,6 @@ func (e Exec) Execute(p *Pipeline) error {
 	return e(p)
 }
 
-// Retry retries the execution of a task up to a maximum number of attempts with delays.
-func (e Exec) Retry(p *Pipeline) error {
-	maxRetries := 5
-	delay := 3 * time.Second
-	var err error
-
-	for i := 1; i <= maxRetries; i++ {
-		err = e.Execute(p)
-		if err == nil {
-			break
-		}
-
-		// If this was the last attempt, log the failure and exit.
-		if i == maxRetries {
-			log.Printf("Task failed after %d attempts: %v\n", i, err)
-			break
-		}
-
-		log.Printf("Retrying in %v... (attempt %d/%d)\n", delay, i, maxRetries)
-		time.Sleep(delay) // Wait before the next attempt.
-	}
-	log.Println("Done.")
-	return err
-}
-
 // ExecTryCatch wraps an executable with a recovery function to handle errors.
 func ExecTryCatch(ex Exec, recovery executable) executable {
 	return &executor{
@@ -306,8 +297,17 @@ func Agent(id string) agent {
 }
 
 // SetPipeline initializes a new pipeline with the specified agent and components.
-func SetPipeline(agent agent, components ...pipelineEvents) Pipeline {
-	return Pipeline{}
+func SetPipeline(name string, agent agent, events ...pipelineEvents) Pipeline {
+	return Pipeline{
+		agent:         agent,
+		name:          name,
+		id:            uuid.New(),
+		mainDirectory: "",
+		directory:     "",
+		events:        events,
+		Diagnostic:   &Diagnostic{},
+		timeRan:       0,
+	}
 }
 
 // ExecuteInPipeline runs all executables in a OnceRunner.
@@ -316,7 +316,11 @@ func (o *onceRunner) ExecuteInPipeline(p *Pipeline) error {
 	return nil
 }
 
-// GetShouldStopIfError indicates if the OnceRunner should stop on error.
+func (o *onceRunner) GetName() string {
+    return "once runnner"
+}
+
+// GetShouldStopIfError should always return true for a onceRunner
 func (o *onceRunner) GetShouldStopIfError() bool {
 	return true
 }

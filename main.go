@@ -7,7 +7,7 @@ import (
 // This is what i want my jerminal application workflow to look like
 func main() {
 
-	pipeline := SetPipeline(
+	pipeline := SetPipeline("leeveen backend prod deploy",
 		Agent("agent1"),
 		RunOnce(
 			Exec(SH("git", "clone git@github.com:Cyber-cicco/leeveen-backend.git")),

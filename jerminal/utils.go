@@ -28,7 +28,7 @@ func CD(dir string) (func(p *Pipeline) error, executable){
 		}
 
 		// Join the sanitized relative path with the current directory
-		newPath := filepath.Join(p.Directory, cleanDir)
+		newPath := filepath.Join(p.directory, cleanDir)
 
 		// Check if the resulting path exists and is a directory
 		info, err := os.Stat(newPath)
@@ -40,12 +40,12 @@ func CD(dir string) (func(p *Pipeline) error, executable){
 		}
 
 		// Update the pipeline's directory
-		p.Directory = newPath
+		p.directory = newPath
 		return nil
 	}, 
 
     Exec(func(p *Pipeline) error {
-        p.Directory = p.MainDirectory
+        p.directory = p.mainDirectory
         return nil
     })
 }
@@ -54,7 +54,7 @@ func CD(dir string) (func(p *Pipeline) error, executable){
 func SH(name string, args ...string) func(p *Pipeline) error {
     return func(p *Pipeline) error {
         cmd := exec.Command(name, args...)
-        cmd.Dir = p.Directory
+        cmd.Dir = p.directory
         out, err := cmd.Output()
         log.Println(out)
         return err
