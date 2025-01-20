@@ -82,8 +82,8 @@ func (p *Pipeline) ExecutePipeline() {
 		if err != nil {
 			if comp.GetShouldStopIfError() {
 				p.inerror = true
-                diag.NewDE(ERROR, "got blocking error in executable %s : %v", comp.GetName(), err)
-                break
+				diag.NewDE(ERROR, fmt.Sprintf("got blocking error in executable %s : %v", comp.GetName(), err))
+				break
 			}
 		}
 	}

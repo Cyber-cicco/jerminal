@@ -46,7 +46,13 @@ type executor struct {
 	deferedFunc  executable // Task to execute at the end of the stage
 }
 
-// onceRunner is a utility for executing a set of executables once, in a specific order.
+// onceRunner is a stage that should execute only once for a pipeline that
+// can be executed multiple times
+// 
+// The first time it runs, it should execute the commands and caches the current
+// state of the directory
+//
+// The subsequent runs just copies the content of the directory in the agent directory
 type onceRunner struct {
 	executables    []executable // List of executables to run.
 	executionOrder uint32       // Order in which the executables should be executed.
@@ -65,11 +71,11 @@ type pipelineEvents interface {
 	GetExecutionOrder() uint32           // Returns the execution order of the event.
 	SetExecutionOrder(uint32)            // Sets the execution order of the event
 	GetShouldStopIfError() bool          // Indicates if the pipeline should stop on error.
-    GetName() string
+	GetName() string
 }
 
 // executable represents an entity that can be executed within a pipeline.
-// 
+//
 // Implemented by stage, Exec, executor
 type executable interface {
 	Execute(p *Pipeline) error // Executes the entity.
@@ -116,9 +122,10 @@ func (s *stage) Execute(p *Pipeline) error {
 		}
 	}
 
-	s.Diagnostic.NewDE(INFO, fmt.Sprintf("Executing clean up of", s.name, beginning))
 	end := time.Now().UnixMilli()
 	s.elapsedTime = end - beginning
+
+	s.Diagnostic.NewDE(INFO, fmt.Sprintf("process %s finished in %d ms", s.name, s.elapsedTime))
 
 	return nil
 }
@@ -141,7 +148,7 @@ func (s *stages) ExecuteInPipeline(p *Pipeline) error {
 
 	// Parallel execution of pipelines
 	if s.parallel {
-		diag.NewDE(DEBUG, fmt.Sprintf("starting parallel tasks", s.name))
+		diag.NewDE(DEBUG, "starting parallel tasks")
 		var wg sync.WaitGroup
 		errchan := make(chan error, len(s.stages))
 		for _, stage := range s.stages {
@@ -183,7 +190,7 @@ func (s *stages) ExecuteInPipeline(p *Pipeline) error {
 }
 
 func (s *stages) GetName() string {
-    return s.name
+	return s.name
 }
 
 // Parallel activates the parallel execution of stages
@@ -305,7 +312,7 @@ func SetPipeline(name string, agent agent, events ...pipelineEvents) Pipeline {
 		mainDirectory: "",
 		directory:     "",
 		events:        events,
-		Diagnostic:   &Diagnostic{},
+		Diagnostic:    &Diagnostic{},
 		timeRan:       0,
 	}
 }
@@ -317,7 +324,7 @@ func (o *onceRunner) ExecuteInPipeline(p *Pipeline) error {
 }
 
 func (o *onceRunner) GetName() string {
-    return "once runnner"
+	return "once runnner"
 }
 
 // GetShouldStopIfError should always return true for a onceRunner
