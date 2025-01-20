@@ -3,7 +3,7 @@ package jerminal
 import (
 	"testing"
 
-	"github.com/Cyber-cicco/jerminal/jerminal/state"
+	"github.com/Cyber-cicco/jerminal/state"
 )
 
 func TestPipelineExecution(t *testing.T) {

@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Cyber-cicco/jerminal/jerminal/state"
+	"github.com/Cyber-cicco/jerminal/state"
 	"github.com/google/uuid"
 )
 
@@ -59,7 +59,7 @@ func NewDiag(name string) *Diagnostic {
 	}
 }
 
-// NewDE is a helper function to add an invent to the diagnostic
+// NewDE is a helper function to add an event to the diagnostic
 func (d *Diagnostic) NewDE(importance DEImp, description string) {
 	d.events = append(d.events, &DiagnosticEvent{
 		importance:  importance,

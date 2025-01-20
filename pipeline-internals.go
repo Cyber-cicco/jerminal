@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Cyber-cicco/jerminal/jerminal/state"
+	"github.com/Cyber-cicco/jerminal/state"
 	"github.com/google/uuid"
 )
 

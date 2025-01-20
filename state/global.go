@@ -50,7 +50,9 @@ func initializeApplicationState(conf *Config) {
 // Should be used by default
 func GetState() (*ApplicationState, error) {
 	once.Do(func() {
-		conf := &Config{}
+		conf := &Config{
+            jerminalResourcePath: "./resources/jerminal.json",
+        }
 		initializeApplicationState(conf)
 	})
 	return state, state.UpdateConfig()
