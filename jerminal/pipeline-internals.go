@@ -161,16 +161,28 @@ func (s *stages) ExecuteInPipeline(p *Pipeline) error {
 		diag.NewDE(DEBUG, "starting parallel tasks")
 		var wg sync.WaitGroup
 		errchan := make(chan error, len(s.stages))
-		for _, stage := range s.stages {
+		for _, s := range s.stages {
 			wg.Add(1)
-			go func(p *Pipeline) {
+			go func(p *Pipeline, s *stage) {
 				defer wg.Done()
-				errchan <- stage.Execute(p)
-			}(p)
+                err := s.Execute(p)
+                if err != nil {
+                    if s.shouldStopIfError {
+                        errchan <- err
+                        return
+                    }
+                    diag.Lock()
+                    defer diag.Unlock()
+                    diag.NewDE(WARN, fmt.Sprintf("got non blocking error in stage %s : %v", s.name, err))
+                }
+			}(p, s)
 		}
 		wg.Wait()
 		close(errchan)
 		for err := range errchan {
+
+			// returns first error encountered in the channel
+			// maybe change that
 			if err != nil {
 				diag.NewDE(DEBUG, fmt.Sprintf("encountered error in one of the tasks. %v", err))
 				return err
@@ -181,11 +193,11 @@ func (s *stages) ExecuteInPipeline(p *Pipeline) error {
 
 		for _, stage := range s.stages {
 			err := stage.Execute(p)
-
-			// returns first error encountered in the channel
-			// maybe change that
 			if err != nil {
-				return err
+                if stage.shouldStopIfError {
+                    return err
+                }
+                diag.NewDE(WARN, fmt.Sprintf("got non blocking error in stage %s : %v", s.name, err))
 			}
 		}
 

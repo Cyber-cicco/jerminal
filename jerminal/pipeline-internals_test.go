@@ -180,3 +180,129 @@ func TestExecTryCatch(t *testing.T) {
     }
 
 }
+
+func TestStagesExecute1(t *testing.T) {
+	p := _test_getPipeline()
+	actual := 0
+    expected := 2
+	stage1 := stage{
+		name: "stage1",
+		executors: []*executor{
+			{
+				ex: Exec(func(p *Pipeline) error {
+					t.Log("first stage func")
+					actual++
+					return nil
+				}),
+			},
+		},
+	}
+	stage2 := stage{
+		name: "stage2",
+		executors: []*executor{
+			{
+				ex: Exec(func(p *Pipeline) error {
+					t.Log("second stage func")
+					actual++
+					return nil
+				}),
+			},
+		},
+	}
+    stages := stages{
+    	executionOrder:    0,
+    	name:              "stages",
+    	stages:            []*stage{
+            &stage1, &stage2,
+        },
+    	shouldStopIfError: true,
+    	parallel:          false,
+    	diagnostic:        &Diagnostic{},
+    }
+    err := stages.ExecuteInPipeline(p)
+
+    if err != nil {
+        t.Fatalf("Expected no error, got %v", err)
+    }
+
+    if expected != actual {
+        t.Fatalf("Expected %d, got %d", expected, actual)
+    }
+}
+
+func TestStagesExecute2(t *testing.T) {
+	p := _test_getPipeline()
+	actual := 0
+    expected := 3
+	stage1 := stage{
+		name: "stage1",
+		executors: []*executor{
+			{
+				ex: Exec(func(p *Pipeline) error {
+					t.Log("first stage func")
+					actual++
+					return errors.New("test")
+				}),
+			},
+		},
+        shouldStopIfError: false,
+	}
+	stage2 := stage{
+		name: "stage2",
+		executors: []*executor{
+			{
+				ex: Exec(func(p *Pipeline) error {
+					t.Log("second stage func")
+					actual++
+					return nil
+				}),
+			},
+		},
+        shouldStopIfError: true,
+	}
+	stage3 := stage{
+		name: "stage3",
+		executors: []*executor{
+			{
+				ex: Exec(func(p *Pipeline) error {
+					t.Log("second stage func")
+					actual++
+					return errors.New("test")
+				}),
+			},
+		},
+        shouldStopIfError: true,
+	}
+	stage4 := stage{
+		name: "stage4",
+		executors: []*executor{
+			{
+				ex: Exec(func(p *Pipeline) error {
+					t.Log("second stage func")
+					actual++
+					return nil
+				}),
+			},
+		},
+        shouldStopIfError: true,
+	}
+    stages := stages{
+    	executionOrder:    0,
+    	name:              "stages",
+    	stages:            []*stage{
+            &stage1, &stage2, &stage3, &stage4,
+        },
+    	shouldStopIfError: false,
+    	parallel:          false,
+    	diagnostic:        &Diagnostic{},
+    }
+    err := stages.ExecuteInPipeline(p)
+
+    if err == nil {
+        t.Fatalf("Expected an error, got nothing")
+    }
+
+    if expected != actual {
+        t.Fatalf("Expected %d, got %d", expected, actual)
+    }
+}

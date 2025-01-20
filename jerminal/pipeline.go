@@ -2,6 +2,7 @@ package jerminal
 
 import (
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/Cyber-cicco/jerminal/jerminal/config"
@@ -34,11 +35,12 @@ const (
 
 // Informations about an element of the pipeline
 type Diagnostic struct {
-	label      string             // Name of the diagnostic
-	identifier uuid.UUID          // Unique identifier of the diagnostic
-	date       time.Time          // Time the diagnostic was written
-	inerror    bool               // Tells if the attached process should be considered in error
-	events     []*DiagnosticEvent // Infos about what happened in the process
+	label        string             // Name of the diagnostic
+	identifier   uuid.UUID          // Unique identifier of the diagnostic
+	date         time.Time          // Time the diagnostic was written
+	inerror      bool               // Tells if the attached process should be considered in error
+	events       []*DiagnosticEvent // Infos about what happened in the process
+	sync.RWMutex                    // Can be used in goroutines so need to lock it
 }
 
 // NewDiag gets a Diagnostic with defaults
