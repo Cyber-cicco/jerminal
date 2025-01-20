@@ -5,14 +5,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/Cyber-cicco/jerminal/jerminal/state"
 	"github.com/google/uuid"
 )
-
-// agent represents a process that executes a pipeline in its personal directory
-// and cleans it up afterward. The Identifier uniquely identifies the agent.
-type agent struct {
-	identifier string
-}
 
 // Stages represents a collection of pipeline stages.
 // Each stage has an execution order and can be configured to stop if an error occurs.
@@ -81,11 +76,6 @@ type executable interface {
 	Execute(p *Pipeline) error // Executes the entity.
 }
 
-// SetAgent initializes the agent for a pipeline.
-func SetAgent(ag agent) {
-	// Placeholder for setting up an agent.
-}
-
 // schedule is a private method that handles pipeline scheduling logic.
 func (p *Pipeline) schedule() {
 	// Placeholder for scheduling pipeline execution.
@@ -96,21 +86,22 @@ func (p *Pipeline) schedule() {
 // TODO : implement the retries
 func (s *stage) Execute(p *Pipeline) error {
 
-    defered := func() error {
+    var lastErr error
+    defer func() {
 		for i, ex := range s.executors {
 			s.Diagnostic.NewDE(DEBUG, "Executing clean up of stage")
 			if ex.deferedFunc != nil {
 				err := ex.deferedFunc.Execute(p)
 				if err != nil {
 					s.Diagnostic.NewDE(ERROR, fmt.Sprintf("Stage %s got error %v in execution n°%d", s.name, err, i))
-					return err
+					lastErr = err
+                    return
 				}
 			}
 		}
-        return nil
-	}
+	}()
 
-	s.Diagnostic = NewDiag(fmt.Sprintf("%s#%d %s", p.identifier, s.executionOrder, s.name))
+	s.Diagnostic = NewDiag(fmt.Sprintf("%s#%d %s", p.id, s.executionOrder, s.name))
 
 	beginning := time.Now().UnixMilli()
 
@@ -121,23 +112,15 @@ func (s *stage) Execute(p *Pipeline) error {
 		err := ex.Execute(p)
 		if err != nil {
 			s.Diagnostic.NewDE(ERROR, fmt.Sprintf("Stage %s got error %v in execution n°%d", s.name, err, i))
-            defered()
 			return err
 		}
 	}
-
-    err := defered()
-    
-    if err != nil {
-        return err
-    }
 
 	end := time.Now().UnixMilli()
 	s.elapsedTime = end - beginning
 
 	s.Diagnostic.NewDE(INFO, fmt.Sprintf("process %s finished in %d ms", s.name, s.elapsedTime))
-
-	return nil
+    return lastErr
 }
 
 func (s *stage) GetExecutionOrder() uint32 {
@@ -319,16 +302,14 @@ func ExecDefer(ex Exec, defered executable) executable {
 }
 
 // Agent retrieves an agent with the specified identifier.
-func Agent(id string) agent {
-	return agent{
-		identifier: id,
-	}
+func Agent(id string) *state.Agent {
+    return state.STATE.GetAgent(id)
 }
 
 // SetPipeline initializes a new pipeline with the specified agent and components.
-func SetPipeline(name string, agent agent, events ...pipelineEvents) Pipeline {
+func SetPipeline(name string, agent *state.Agent, events ...pipelineEvents) Pipeline {
 	return Pipeline{
-		agent:         agent,
+		Agent:         agent,
 		name:          name,
 		id:            uuid.New(),
 		mainDirectory: "",

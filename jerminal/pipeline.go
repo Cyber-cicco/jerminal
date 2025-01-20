@@ -5,14 +5,14 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Cyber-cicco/jerminal/jerminal/config"
+	"github.com/Cyber-cicco/jerminal/jerminal/state"
 	"github.com/google/uuid"
 )
 
 // Pipeline represents the main execution context for stages and executors.
 // It uses an Agent to manage execution and a directory for workspace.
 type Pipeline struct {
-	agent
+	Agent         *state.Agent     // Agent executing the Pipeline
 	name          string           // human readable name of the pipeline
 	mainDirectory string           // Base directory of the pipeline
 	directory     string           // Working directory for the pipeline.
@@ -70,13 +70,29 @@ type DiagnosticEvent struct {
 
 // Launches the events of the pipeline
 //
-// Should be called when the server asks to
-func (p *Pipeline) ExecutePipeline() {
+// MUST BE CALLED IN A GOROUTINE BY THE SERVER
+func (p *Pipeline) ExecutePipeline() error {
+	var lastErr error
+
 	diag := NewDiag(fmt.Sprintf("%s#%s", p.name, p.id.String()))
 	diag.NewDE(INFO, "starting main loop")
 
 	p.Diagnostic = diag
-	p.mainDirectory = config.CONF.AgentDir
+
+	defer func() {
+		err := p.Agent.CleanUp()
+		diag.NewDE(CRITICAL, fmt.Sprintf("agent could not terminate properly because of error %v", err))
+		lastErr = err
+	}()
+
+	path, err := p.Agent.Initialize()
+
+	if err != nil {
+		diag.NewDE(CRITICAL, fmt.Sprintf("agent could not initialize because of error %v", err))
+		return err
+	}
+
+	p.mainDirectory = path
 	p.directory = p.mainDirectory
 
 	for _, comp := range p.events {
@@ -89,4 +105,5 @@ func (p *Pipeline) ExecutePipeline() {
 			}
 		}
 	}
+	return lastErr
 }

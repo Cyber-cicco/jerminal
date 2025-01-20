@@ -3,13 +3,15 @@ package jerminal
 import (
 	"errors"
 	"testing"
+	"time"
 
+	"github.com/Cyber-cicco/jerminal/jerminal/state"
 	"github.com/google/uuid"
 )
 
 func _test_getPipeline() *Pipeline {
 	return &Pipeline{
-		agent:         agent{},
+		Agent:         &state.Agent{},
 		name:          "test",
 		mainDirectory: "./test",
 		directory:     "./test",
@@ -305,4 +307,83 @@ func TestStagesExecute2(t *testing.T) {
     if expected != actual {
         t.Fatalf("Expected %d, got %d", expected, actual)
     }
+}
+
+func TestStagesExecute3 (t *testing.T) {
+	p := _test_getPipeline()
+	stage1 := stage{
+		name: "stage1",
+		executors: []*executor{
+			{
+				ex: Exec(func(p *Pipeline) error {
+                    time.Sleep(1 * time.Second)
+                    return nil
+				}),
+			},
+		},
+        shouldStopIfError: false,
+	}
+	stage2 := stage{
+		name: "stage2",
+		executors: []*executor{
+			{
+				ex: Exec(func(p *Pipeline) error {
+                    time.Sleep(1 * time.Second)
+                    return nil
+				}),
+			},
+		},
+        shouldStopIfError: true,
+	}
+	stage3 := stage{
+		name: "stage3",
+		executors: []*executor{
+			{
+				ex: Exec(func(p *Pipeline) error {
+                    time.Sleep(1 * time.Second)
+                    return nil
+				}),
+			},
+		},
+        shouldStopIfError: true,
+	}
+    stages1 := stages{
+    	executionOrder:    0,
+    	name:              "stages1",
+    	stages:            []*stage{
+            &stage1, &stage2, &stage3, 
+        },
+    	shouldStopIfError: false,
+    	parallel:          false,
+    	diagnostic:        &Diagnostic{},
+    }
+    begin := time.Now().Unix()
+    err := stages1.ExecuteInPipeline(p)
+    end := time.Now().Unix()
+
+    spent := end - begin
+
+    if err != nil {
+        t.Fatalf("Should not have been an error, got %v", err)
+    }
+
+    if spent < 3 {
+        t.Fatalf("Test should have taken more than 3 seconds")
+    }
+    stages1.parallel = true
+
+    begin = time.Now().Unix()
+    err = stages1.ExecuteInPipeline(p)
+    end = time.Now().Unix()
+
+    spent = end - begin
+
+    if err != nil {
+        t.Fatalf("Should not have been an error, got %v", err)
+    }
+
+    if spent > 2 {
+        t.Fatalf("Test should have taken more than 3 seconds")
+    }
+
 }
