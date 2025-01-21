@@ -60,10 +60,6 @@ func (o *onceRunner) ExecuteInPipeline(p *Pipeline) error {
     }
 
     if p.timeRan > 0 {
-        err := utils.CopyDir(pipelinePath, p.directory)
-        if err != nil {
-            return err
-        }
         p.timeRan++
         return nil
     }

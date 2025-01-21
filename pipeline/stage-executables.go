@@ -2,8 +2,13 @@ package pipeline
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"time"
+
+	"github.com/Cyber-cicco/jerminal/utils"
 )
+
 // stage represents a single step in a pipeline.
 // A stage contains executors that define tasks to be executed.
 type stage struct {
@@ -159,11 +164,52 @@ func ExecTryCatch(ex Exec, recovery executable) executable {
 	}
 }
 
-// ExecTryCatch wraps an executable with a defered function to execute at the end of the stage.
+// ExecDefer wraps an executable with a defered function to execute at the end of the stage.
 func ExecDefer(ex Exec, defered executable) executable {
 	return &executor{
 		ex:           ex,
 		recoveryFunc: nil,
 		deferedFunc:  defered,
 	}
+}
+
+// Defer wraps an executable with a defered function to execute at the end of the stage.
+func Defer(defered executable) executable {
+	return &executor{
+		ex:           nil,
+		recoveryFunc: nil,
+		deferedFunc:  defered,
+	}
+}
+
+// Cache copies a directory in the cache
+func Cache(dirname string) executable {
+    return Exec(func(p *Pipeline) error {
+        targetPath := filepath.Join(p.directory, dirname)
+        cachePath := filepath.Join(p.State.PipelineDir, p.id.String(), dirname)
+        _, err := os.Stat(targetPath)
+        if err != nil {
+            return err
+        }
+
+        _, err = os.Stat(cachePath)
+
+        //TODO : implement a system to checksum the files to see which have changed
+        if err == nil {
+            err = os.RemoveAll(cachePath)
+            if err != nil {
+                return err
+            }
+        }
+
+        err = os.MkdirAll(cachePath, os.ModePerm)
+
+        if err != nil {
+            return err
+        }
+
+        utils.CopyDir(targetPath, cachePath)
+
+        return nil
+    })
 }

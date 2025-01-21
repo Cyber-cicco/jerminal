@@ -2,8 +2,11 @@ package pipeline
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 
 	"github.com/Cyber-cicco/jerminal/state"
+	"github.com/Cyber-cicco/jerminal/utils"
 	"github.com/google/uuid"
 )
 
@@ -41,9 +44,12 @@ func (p *Pipeline) ExecutePipeline() error {
 	p.Diagnostic = diag
     p.Config = p.State.CloneConfig()
 
+
 	defer func() {
 		err := p.Agent.CleanUp()
-		diag.NewDE(CRITICAL, fmt.Sprintf("agent could not terminate properly because of error %v", err))
+		if err != nil {
+            diag.NewDE(CRITICAL, fmt.Sprintf("agent could not terminate properly because of error %v", err))
+        }
 		lastErr = err
 	}()
 
@@ -57,6 +63,22 @@ func (p *Pipeline) ExecutePipeline() error {
 
 	p.mainDirectory = path
 	p.directory = p.mainDirectory
+
+    pipePath := filepath.Join(p.State.PipelineDir, p.id.String())
+
+    _, err = os.Stat(pipePath)
+
+    if err != nil {
+        err := os.MkdirAll(pipePath, os.ModePerm)
+        if err != nil {
+            return err
+        }
+    } else {
+        err := utils.CopyDir(pipePath, p.mainDirectory)
+        if err != nil {
+            return err
+        }
+    }
 
 	for _, comp := range p.events {
 		err := comp.ExecuteInPipeline(p)
