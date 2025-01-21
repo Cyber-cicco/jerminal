@@ -1,11 +1,11 @@
-package jerminal
+package utils
 
 import (
 	"io"
 	"os"
 )
 
-func copyDir(src, dst string) error {
+func CopyDir(src, dst string) error {
 
 	_, err := os.Stat(src)
     if err != nil {
@@ -18,7 +18,7 @@ func copyDir(src, dst string) error {
 	return err
 }
 
-func isDirEmpty(dirPath string) (bool, error) {
+func IsDirEmpty(dirPath string) (bool, error) {
 
 	dir, err := os.Open(dirPath)
 	if err != nil {

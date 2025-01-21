@@ -1,4 +1,4 @@
-package jerminal
+package pipeline
 
 import (
 	"errors"

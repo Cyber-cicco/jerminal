@@ -1,0 +1,30 @@
+package pipeline
+
+type DEImp uint8
+
+const (
+	DEBUG = DEImp(iota)
+	INFO
+	WARN
+	ERROR
+	CRITICAL
+)
+
+// pipelineEvents represents a generic event of the pipeline.
+// Each event must be able to execute within a pipeline and provide metadata.
+//
+// Implemented by : stages, onceRunner
+type pipelineEvents interface {
+	ExecuteInPipeline(p *Pipeline) error // Executes the component within the pipeline.
+	GetExecutionOrder() uint32           // Returns the execution order of the event.
+	SetExecutionOrder(uint32)            // Sets the execution order of the event
+	GetShouldStopIfError() bool          // Indicates if the pipeline should stop on error.
+	GetName() string
+}
+
+// executable represents an entity that can be executed within a pipeline.
+//
+// Implemented by stage, Exec, executor
+type executable interface {
+	Execute(p *Pipeline) error // Executes the entity.
+}

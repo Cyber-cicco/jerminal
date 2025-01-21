@@ -1,4 +1,4 @@
-package jerminal
+package pipeline
 
 import (
 	"errors"
@@ -27,7 +27,7 @@ func _test_getPipeline(agentId string) *Pipeline {
 		State: state.GetStateCustomConf(&state.Config{
 			AgentDir:    "./test/agent",
 			PipelineDir: "./test/pipeline",
-            JerminalResourcePath: "./resources/jerminal.json",
+            JerminalResourcePath: "../resources/jerminal.json",
 		}),
 	}
 }

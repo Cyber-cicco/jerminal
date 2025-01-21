@@ -1,9 +1,7 @@
-package jerminal
+package pipeline
 
 import (
 	"fmt"
-	"sync"
-	"time"
 
 	"github.com/Cyber-cicco/jerminal/state"
 	"github.com/google/uuid"
@@ -28,50 +26,8 @@ type Pipeline struct {
 	Config *state.Config
 }
 
-type DEImp uint8
-
-const (
-	DEBUG = DEImp(iota)
-	INFO
-	WARN
-	ERROR
-	CRITICAL
-)
-
-// Informations about an element of the pipeline
-type Diagnostic struct {
-	label        string             // Name of the diagnostic
-	identifier   uuid.UUID          // Unique identifier of the diagnostic
-	date         time.Time          // Time the diagnostic was written
-	inerror      bool               // Tells if the attached process should be considered in error
-	events       []*DiagnosticEvent // Infos about what happened in the process
-	sync.RWMutex                    // Can be used in goroutines so need to lock it
-}
-
-// NewDiag gets a Diagnostic with defaults
-func NewDiag(name string) *Diagnostic {
-	return &Diagnostic{
-		label:      name,
-		identifier: uuid.New(),
-		date:       time.Now(),
-		inerror:    false,
-		events:     []*DiagnosticEvent{},
-	}
-}
-
-// NewDE is a helper function to add an event to the diagnostic
-func (d *Diagnostic) NewDE(importance DEImp, description string) {
-	d.events = append(d.events, &DiagnosticEvent{
-		importance:  importance,
-		description: fmt.Sprintf("%v : %s", time.Now(), description),
-	})
-}
-
-// Infos about an event
-type DiagnosticEvent struct {
-	importance  DEImp  // Importance of the event
-	description string // Description of the event
-}
+// Provides the agent for the pipeline
+type AgentProvider func(p *Pipeline) *state.Agent
 
 // Launches the events of the pipeline
 //
@@ -113,4 +69,40 @@ func (p *Pipeline) ExecutePipeline() error {
 		}
 	}
 	return lastErr
+}
+
+// SetPipeline initializes a new pipeline with the specified agent and components.
+//
+// It gets the current state of the app and gives back the Pipeline
+func SetPipeline(name string, agent AgentProvider, events ...pipelineEvents) (*Pipeline, error) {
+	s, err := state.GetState()
+	if err != nil {
+		return nil, err
+	}
+	return setPipelineWithState(name, agent, s, events...), nil
+}
+
+// setPipelineWithState gets a new pipeline with a state
+//
+// Only in testing should it be used by something else than SetPipeline
+func setPipelineWithState(name string, agent AgentProvider, state *state.ApplicationState, events ...pipelineEvents) *Pipeline {
+	p := Pipeline{
+		name:          name,
+		id:            uuid.New(),
+		mainDirectory: "",
+		directory:     "",
+		events:        events,
+		Diagnostic:    &Diagnostic{},
+		timeRan:       0,
+		State:         state,
+	}
+	p.Agent = agent(&p)
+	return &p
+}
+
+// Agent retrieves an agent with the specified identifier.
+func Agent(id string) AgentProvider {
+	return func(p *Pipeline) *state.Agent {
+		return p.State.GetAgent(id)
+	}
 }

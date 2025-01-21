@@ -52,7 +52,7 @@ func GetState() (*ApplicationState, error) {
 	once.Do(func() {
         fmt.Printf("\"in once\": %v\n", "in once")
 		conf := &Config{
-            JerminalResourcePath: "./resources/jerminal.json",
+            JerminalResourcePath: "../resources/jerminal.json",
         }
 		initializeApplicationState(conf)
 	})
