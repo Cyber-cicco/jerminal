@@ -208,8 +208,8 @@ func Cache(dirname string) executable {
             return err
         }
 
-        utils.CopyDir(targetPath, cachePath)
+        err = utils.CopyDir(targetPath, cachePath)
 
-        return nil
+        return err
     })
 }
