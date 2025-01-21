@@ -1,7 +1,10 @@
 package jerminal
 
 import (
+	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
 	"sync"
 	"time"
 
@@ -77,11 +80,6 @@ type pipelineEvents interface {
 // Implemented by stage, Exec, executor
 type executable interface {
 	Execute(p *Pipeline) error // Executes the entity.
-}
-
-// schedule is a private method that handles pipeline scheduling logic.
-func (p *Pipeline) schedule() {
-	// Placeholder for scheduling pipeline execution.
 }
 
 // Execute runs the tasks in a stage sequentially and records the elapsed time.
@@ -230,6 +228,7 @@ func (e *executor) Execute(p *Pipeline) error {
 	return err
 }
 
+
 // Stages initializes a new set of stages with the provided configuration.
 func Stages(name string, _stages ...*stage) *stages {
 	return &stages{
@@ -342,7 +341,28 @@ func setPipelineWithState(name string, agent AgentProvider, state *state.Applica
 
 // ExecuteInPipeline runs all executables in a OnceRunner.
 func (o *onceRunner) ExecuteInPipeline(p *Pipeline) error {
-	// TODO : implement function body
+    pipelinePath := filepath.Join(p.State.PipelineDir, p.name)
+    agentPath := filepath.Join(p.State.AgentDir, p.name)
+    empty, err := isDirEmpty(agentPath)
+
+    if err != nil || !empty {
+        return errors.New("Agent directory should be empty when executing a task that runs once per pipeline")
+    }
+
+    if p.timeRan > 0 {
+        err := copyDir(pipelinePath, agentPath)
+        if err != nil {
+            return err
+        }
+        p.timeRan++
+        return nil
+    }
+
+    for _, ex := range o.executables {
+        err := ex.Execute(p)
+    }
+
+    p.timeRan++
 	return nil
 }
 
