@@ -142,6 +142,13 @@ func (s *stages) ExecuteInPipeline(p *Pipeline) error {
 	beginning := time.Now().UnixMilli()
 	diag.NewDE(INFO, fmt.Sprintf("stage %s started", s.name))
 
+	defer func() {
+		end := time.Now().UnixMilli()
+		elapsedTime := end - beginning
+
+		diag.NewDE(INFO, fmt.Sprintf("stage %s ended successfully. Took %d ms", s.name, elapsedTime))
+	}()
+
 	// Parallel execution of pipelines
 	if s.parallel {
 		diag.NewDE(DEBUG, "starting parallel tasks")
@@ -174,26 +181,19 @@ func (s *stages) ExecuteInPipeline(p *Pipeline) error {
 				return err
 			}
 		}
-
-	} else {
-
-		for _, stage := range s.stages {
-			err := stage.Execute(p)
-			if err != nil {
-				if stage.shouldStopIfError {
-					return err
-				}
-				diag.NewDE(WARN, fmt.Sprintf("got non blocking error in stage %s : %v", s.name, err))
-			}
-		}
+        return nil
 
 	}
 
-	end := time.Now().UnixMilli()
-	elapsedTime := end - beginning
-
-	diag.NewDE(INFO, fmt.Sprintf("stage %s ended successfully. Took %d ms", s.name, elapsedTime))
-
+	for _, stage := range s.stages {
+		err := stage.Execute(p)
+		if err != nil {
+			if stage.shouldStopIfError {
+				return err
+			}
+			diag.NewDE(WARN, fmt.Sprintf("got non blocking error in stage %s : %v", s.name, err))
+		}
+	}
 	return nil
 }
 
@@ -315,18 +315,18 @@ func Agent(id string) AgentProvider {
 //
 // It gets the current state of the app and gives back the Pipeline
 func SetPipeline(name string, agent AgentProvider, events ...pipelineEvents) (*Pipeline, error) {
-    s, err := state.GetState()
-    if err != nil {
-        return nil, err
-    }
-    return setPipelineWithState(name, agent, s, events...), nil
+	s, err := state.GetState()
+	if err != nil {
+		return nil, err
+	}
+	return setPipelineWithState(name, agent, s, events...), nil
 }
 
 // setPipelineWithState gets a new pipeline with a state
 //
 // Only in testing should it be used by something else than SetPipeline
 func setPipelineWithState(name string, agent AgentProvider, state *state.ApplicationState, events ...pipelineEvents) *Pipeline {
-    p := Pipeline{
+	p := Pipeline{
 		name:          name,
 		id:            uuid.New(),
 		mainDirectory: "",
@@ -336,8 +336,8 @@ func setPipelineWithState(name string, agent AgentProvider, state *state.Applica
 		timeRan:       0,
 		State:         state,
 	}
-    p.Agent = agent(&p)
-    return &p
+	p.Agent = agent(&p)
+	return &p
 }
 
 // ExecuteInPipeline runs all executables in a OnceRunner.
