@@ -20,7 +20,7 @@ type ApplicationState struct {
 type Agent struct {
 	sync.Mutex
 	BusySig    *sync.Cond        // Signal informing if the Agent is busy
-	identifier string            // unique string representing an Agent
+	Identifier string            // unique string representing an Agent
 	Busy       bool              // true if the agent is executing a pipeline
 	State      *ApplicationState // The application state
 }
@@ -50,8 +50,9 @@ func initializeApplicationState(conf *Config) {
 // Should be used by default
 func GetState() (*ApplicationState, error) {
 	once.Do(func() {
+        fmt.Printf("\"in once\": %v\n", "in once")
 		conf := &Config{
-            jerminalResourcePath: "./resources/jerminal.json",
+            JerminalResourcePath: "./resources/jerminal.json",
         }
 		initializeApplicationState(conf)
 	})
@@ -64,7 +65,10 @@ func GetState() (*ApplicationState, error) {
 //
 // Should be used for tests
 func GetStateCustomConf(conf *Config) *ApplicationState {
-	once.Do(func() { initializeApplicationState(conf) })
+	once.Do(func() {
+        fmt.Printf("\"in once custom\": %v\n", "in once")
+        initializeApplicationState(conf)
+    })
 	return state
 }
 
@@ -80,7 +84,7 @@ func (a *Agent) Initialize() (string, error) {
 	a.Unlock()
 
 	// Create the agent directory
-	path := path.Join(a.State.AgentDir, a.identifier)
+	path := path.Join(a.State.AgentDir, a.Identifier)
 	infos, err := os.Stat(path)
 	if err == nil {
 		return "", errors.New(fmt.Sprintf("directory should not exist, agent has not cleaned up his directory from previous job. %s", infos.Name()))
@@ -95,7 +99,7 @@ func (a *Agent) CleanUp() error {
 	defer a.Unlock()
 	a.Lock()
 
-	path := path.Join(a.State.AgentDir, a.identifier)
+	path := path.Join(a.State.AgentDir, a.Identifier)
 	err := os.RemoveAll(path)
 	if err != nil {
 		return err
@@ -113,7 +117,7 @@ func (s *ApplicationState) GetAgent(id string) *Agent {
 	ag, ok := s.agents[id]
 	if !ok {
 		ag = &Agent{
-			identifier: id,
+			Identifier: id,
 			Busy:       false,
 			State:      s,
 		}
@@ -129,7 +133,7 @@ func (s *ApplicationState) CloneConfig() *Config {
     conf := Config{
     	AgentDir:             s.AgentDir,
     	PipelineDir:          s.PipelineDir,
-    	jerminalResourcePath: s.jerminalResourcePath,
+    	JerminalResourcePath: s.JerminalResourcePath,
     }
     return &conf
 }

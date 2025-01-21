@@ -94,6 +94,7 @@ func (p *Pipeline) ExecutePipeline() error {
 	path, err := p.Agent.Initialize()
 
 	if err != nil {
+        fmt.Printf("err: %v\n", err)
 		diag.NewDE(CRITICAL, fmt.Sprintf("agent could not initialize because of error %v", err))
 		return err
 	}

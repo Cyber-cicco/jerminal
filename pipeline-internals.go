@@ -3,7 +3,6 @@ package jerminal
 import (
 	"errors"
 	"fmt"
-	"os"
 	"path/filepath"
 	"sync"
 	"time"
@@ -341,16 +340,21 @@ func setPipelineWithState(name string, agent AgentProvider, state *state.Applica
 
 // ExecuteInPipeline runs all executables in a OnceRunner.
 func (o *onceRunner) ExecuteInPipeline(p *Pipeline) error {
-    pipelinePath := filepath.Join(p.State.PipelineDir, p.name)
-    agentPath := filepath.Join(p.State.AgentDir, p.name)
-    empty, err := isDirEmpty(agentPath)
 
-    if err != nil || !empty {
+    pipelinePath := filepath.Join(p.State.PipelineDir, p.id.String())
+    fmt.Printf("p.directory: %v\n", p.directory)
+    empty, err := isDirEmpty(p.directory)
+
+    if err != nil {
+        return err
+    }
+
+    if !empty {
         return errors.New("Agent directory should be empty when executing a task that runs once per pipeline")
     }
 
     if p.timeRan > 0 {
-        err := copyDir(pipelinePath, agentPath)
+        err := copyDir(pipelinePath, p.directory)
         if err != nil {
             return err
         }
@@ -360,6 +364,15 @@ func (o *onceRunner) ExecuteInPipeline(p *Pipeline) error {
 
     for _, ex := range o.executables {
         err := ex.Execute(p)
+        if err != nil {
+            return err
+        }
+    }
+    
+    err = copyDir(p.directory, pipelinePath)
+    
+    if err != nil {
+        return err
     }
 
     p.timeRan++

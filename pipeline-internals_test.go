@@ -2,6 +2,8 @@ package jerminal
 
 import (
 	"errors"
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -9,9 +11,11 @@ import (
 	"github.com/google/uuid"
 )
 
-func _test_getPipeline() *Pipeline {
+func _test_getPipeline(agentId string) *Pipeline {
 	return &Pipeline{
-		Agent:         &state.Agent{},
+		Agent: &state.Agent{
+			Identifier: agentId,
+		},
 		name:          "test",
 		mainDirectory: "./test",
 		directory:     "./test",
@@ -20,11 +24,16 @@ func _test_getPipeline() *Pipeline {
 		events:        []pipelineEvents{},
 		inerror:       false,
 		Diagnostic:    &Diagnostic{},
+		State: state.GetStateCustomConf(&state.Config{
+			AgentDir:    "./test/agent",
+			PipelineDir: "./test/pipeline",
+            JerminalResourcePath: "./resources/jerminal.json",
+		}),
 	}
 }
 
 func TestStageExecute1(t *testing.T) {
-	p := _test_getPipeline()
+	p := _test_getPipeline("TestStageExecute1")
 	actual := 0
 	stage := stage{
 		name: "test1",
@@ -87,7 +96,7 @@ func TestStageExecute1(t *testing.T) {
 }
 
 func TestStageExecute2(t *testing.T) {
-	p := _test_getPipeline()
+	p := _test_getPipeline("TestStageExecute2")
 	actual := 0
 	expected := 9
 
@@ -122,8 +131,8 @@ func TestStageExecute2(t *testing.T) {
 					actual++
 					return errors.New("test")
 				}),
-                recoveryFunc: nil,
-				deferedFunc: nil,
+				recoveryFunc: nil,
+				deferedFunc:  nil,
 			},
 		},
 		shouldStopIfError: true,
@@ -146,11 +155,11 @@ func TestStageExecute2(t *testing.T) {
 }
 
 func TestExecTryCatch(t *testing.T) {
-	p := _test_getPipeline()
-    err := errors.New("test")
+	p := _test_getPipeline("TestExecTryCatch")
+	err := errors.New("test")
 	actual := 0
-    expected := 4
-    exec := ExecTryCatch(
+	expected := 4
+	exec := ExecTryCatch(
 		func(p *Pipeline) error {
 			actual++
 			return err
@@ -165,28 +174,28 @@ func TestExecTryCatch(t *testing.T) {
 					actual++
 					return err
 				},
-                Exec(func(p *Pipeline) error {
-                    actual++
-                    return err
-                }),
+				Exec(func(p *Pipeline) error {
+					actual++
+					return err
+				}),
 			),
 		),
 	)
-    err = exec.Execute(p)
-    if err == nil {
-        t.Fatalf("Expected an error, got nothing instead")
-    }
+	err = exec.Execute(p)
+	if err == nil {
+		t.Fatalf("Expected an error, got nothing instead")
+	}
 
-    if expected != actual {
-        t.Fatalf("Expected %d, got %d", expected, actual)
-    }
+	if expected != actual {
+		t.Fatalf("Expected %d, got %d", expected, actual)
+	}
 
 }
 
 func TestStagesExecute1(t *testing.T) {
-	p := _test_getPipeline()
+	p := _test_getPipeline("TestStagesExecute1")
 	actual := 0
-    expected := 2
+	expected := 2
 	stage1 := stage{
 		name: "stage1",
 		executors: []*executor{
@@ -211,31 +220,31 @@ func TestStagesExecute1(t *testing.T) {
 			},
 		},
 	}
-    stages := stages{
-    	executionOrder:    0,
-    	name:              "stages",
-    	stages:            []*stage{
-            &stage1, &stage2,
-        },
-    	shouldStopIfError: true,
-    	parallel:          false,
-    	diagnostic:        &Diagnostic{},
-    }
-    err := stages.ExecuteInPipeline(p)
+	stages := stages{
+		executionOrder: 0,
+		name:           "stages",
+		stages: []*stage{
+			&stage1, &stage2,
+		},
+		shouldStopIfError: true,
+		parallel:          false,
+		diagnostic:        &Diagnostic{},
+	}
+	err := stages.ExecuteInPipeline(p)
 
-    if err != nil {
-        t.Fatalf("Expected no error, got %v", err)
-    }
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
 
-    if expected != actual {
-        t.Fatalf("Expected %d, got %d", expected, actual)
-    }
+	if expected != actual {
+		t.Fatalf("Expected %d, got %d", expected, actual)
+	}
 }
 
 func TestStagesExecute2(t *testing.T) {
-	p := _test_getPipeline()
+	p := _test_getPipeline("TestStagesExecute2")
 	actual := 0
-    expected := 3
+	expected := 3
 	stage1 := stage{
 		name: "stage1",
 		executors: []*executor{
@@ -247,7 +256,7 @@ func TestStagesExecute2(t *testing.T) {
 				}),
 			},
 		},
-        shouldStopIfError: false,
+		shouldStopIfError: false,
 	}
 	stage2 := stage{
 		name: "stage2",
@@ -260,7 +269,7 @@ func TestStagesExecute2(t *testing.T) {
 				}),
 			},
 		},
-        shouldStopIfError: true,
+		shouldStopIfError: true,
 	}
 	stage3 := stage{
 		name: "stage3",
@@ -273,7 +282,7 @@ func TestStagesExecute2(t *testing.T) {
 				}),
 			},
 		},
-        shouldStopIfError: true,
+		shouldStopIfError: true,
 	}
 	stage4 := stage{
 		name: "stage4",
@@ -286,105 +295,156 @@ func TestStagesExecute2(t *testing.T) {
 				}),
 			},
 		},
-        shouldStopIfError: true,
+		shouldStopIfError: true,
 	}
-    stages := stages{
-    	executionOrder:    0,
-    	name:              "stages",
-    	stages:            []*stage{
-            &stage1, &stage2, &stage3, &stage4,
-        },
-    	shouldStopIfError: false,
-    	parallel:          false,
-    	diagnostic:        &Diagnostic{},
-    }
-    err := stages.ExecuteInPipeline(p)
+	stages := stages{
+		executionOrder: 0,
+		name:           "stages",
+		stages: []*stage{
+			&stage1, &stage2, &stage3, &stage4,
+		},
+		shouldStopIfError: false,
+		parallel:          false,
+		diagnostic:        &Diagnostic{},
+	}
+	err := stages.ExecuteInPipeline(p)
 
-    if err == nil {
-        t.Fatalf("Expected an error, got nothing")
-    }
+	if err == nil {
+		t.Fatalf("Expected an error, got nothing")
+	}
 
-    if expected != actual {
-        t.Fatalf("Expected %d, got %d", expected, actual)
-    }
+	if expected != actual {
+		t.Fatalf("Expected %d, got %d", expected, actual)
+	}
 }
 
-func TestStagesExecute3 (t *testing.T) {
-    return
-	p := _test_getPipeline()
+func TestStagesExecute3(t *testing.T) {
+	return
+	p := _test_getPipeline("TestStagesExecute3")
 	stage1 := stage{
 		name: "stage1",
 		executors: []*executor{
 			{
 				ex: Exec(func(p *Pipeline) error {
-                    time.Sleep(1 * time.Second)
-                    return nil
+					time.Sleep(1 * time.Second)
+					return nil
 				}),
 			},
 		},
-        shouldStopIfError: false,
+		shouldStopIfError: false,
 	}
 	stage2 := stage{
 		name: "stage2",
 		executors: []*executor{
 			{
 				ex: Exec(func(p *Pipeline) error {
-                    time.Sleep(1 * time.Second)
-                    return nil
+					time.Sleep(1 * time.Second)
+					return nil
 				}),
 			},
 		},
-        shouldStopIfError: true,
+		shouldStopIfError: true,
 	}
 	stage3 := stage{
 		name: "stage3",
 		executors: []*executor{
 			{
 				ex: Exec(func(p *Pipeline) error {
-                    time.Sleep(1 * time.Second)
-                    return nil
+					time.Sleep(1 * time.Second)
+					return nil
 				}),
 			},
 		},
-        shouldStopIfError: true,
+		shouldStopIfError: true,
 	}
-    stages1 := stages{
-    	executionOrder:    0,
-    	name:              "stages1",
-    	stages:            []*stage{
-            &stage1, &stage2, &stage3, 
-        },
-    	shouldStopIfError: false,
-    	parallel:          false,
-    	diagnostic:        &Diagnostic{},
-    }
-    begin := time.Now().Unix()
-    err := stages1.ExecuteInPipeline(p)
-    end := time.Now().Unix()
+	stages1 := stages{
+		executionOrder: 0,
+		name:           "stages1",
+		stages: []*stage{
+			&stage1, &stage2, &stage3,
+		},
+		shouldStopIfError: false,
+		parallel:          false,
+		diagnostic:        &Diagnostic{},
+	}
+	begin := time.Now().Unix()
+	err := stages1.ExecuteInPipeline(p)
+	end := time.Now().Unix()
 
-    spent := end - begin
+	spent := end - begin
 
-    if err != nil {
-        t.Fatalf("Should not have been an error, got %v", err)
-    }
+	if err != nil {
+		t.Fatalf("Should not have been an error, got %v", err)
+	}
 
-    if spent < 3 {
-        t.Fatalf("Test should have taken more than 3 seconds")
-    }
-    stages1.parallel = true
+	if spent < 3 {
+		t.Fatalf("Test should have taken more than 3 seconds")
+	}
+	stages1.parallel = true
 
-    begin = time.Now().Unix()
-    err = stages1.ExecuteInPipeline(p)
-    end = time.Now().Unix()
+	begin = time.Now().Unix()
+	err = stages1.ExecuteInPipeline(p)
+	end = time.Now().Unix()
 
-    spent = end - begin
+	spent = end - begin
 
-    if err != nil {
-        t.Fatalf("Should not have been an error, got %v", err)
-    }
+	if err != nil {
+		t.Fatalf("Should not have been an error, got %v", err)
+	}
 
-    if spent > 2 {
-        t.Fatalf("Test should have taken more than 3 seconds")
-    }
+	if spent > 2 {
+		t.Fatalf("Test should have taken more than 3 seconds")
+	}
 
+}
+
+func TestOnceRunner(t *testing.T) {
+	p := _test_getPipeline("TestOnceRunner")
+	o := &onceRunner{
+		executables: []executable{
+			Exec(func(p *Pipeline) error {
+				err := os.Mkdir(filepath.Join(p.directory, "test"), os.ModePerm)
+				return err
+			}),
+		},
+		executionOrder: 0,
+		Diagnostic:     &Diagnostic{},
+	}
+
+	dirPathPipe := filepath.Join(p.State.PipelineDir, p.id.String())
+	dirPathAgent := filepath.Join(filepath.Join(p.State.AgentDir, p.Agent.Identifier))
+    os.MkdirAll(dirPathPipe, os.ModePerm)
+    os.MkdirAll(dirPathAgent, os.ModePerm)
+
+    p.mainDirectory = dirPathAgent
+    p.directory = dirPathAgent
+
+	err := o.ExecuteInPipeline(p)
+
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+
+    infos, err := os.Stat(filepath.Join(dirPathAgent, "test"))
+
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+
+	if infos.Name() != "test" {
+		t.Fatalf("Expected file to be called test, got %s", infos.Name())
+	}
+
+	infos, err = os.Stat(filepath.Join(dirPathPipe, "test"))
+
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+
+	if infos.Name() != "test" {
+		t.Fatalf("Expected file to be called test, got %s", infos.Name())
+	}
+
+	os.RemoveAll(dirPathPipe)
+	os.RemoveAll(dirPathAgent)
 }

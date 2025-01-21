@@ -10,7 +10,7 @@ var _test_count int = 1
 func TestAgentLifeCycle(t *testing.T) {
 	var STATE ApplicationState = ApplicationState{
 		Config: &Config{
-			jerminalResourcePath: "../resources/jerminal.json",
+			JerminalResourcePath: "../resources/jerminal.json",
 		},
 		agents: make(map[string]*Agent),
 	}
