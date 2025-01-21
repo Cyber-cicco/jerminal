@@ -445,6 +445,37 @@ func TestOnceRunner(t *testing.T) {
 		t.Fatalf("Expected file to be called test, got %s", infos.Name())
 	}
 
+	os.RemoveAll(dirPathAgent)
+    os.MkdirAll(dirPathAgent, os.ModePerm)
+
+    p.timeRan++
+
+    err = o.ExecuteInPipeline(p)
+
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+
+    infos, err = os.Stat(filepath.Join(dirPathAgent, "test"))
+
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+
+	if infos.Name() != "test" {
+		t.Fatalf("Expected file to be called test, got %s", infos.Name())
+	}
+
+	infos, err = os.Stat(filepath.Join(dirPathPipe, "test"))
+
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+
+	if infos.Name() != "test" {
+		t.Fatalf("Expected file to be called test, got %s", infos.Name())
+	}
+
 	os.RemoveAll(dirPathPipe)
 	os.RemoveAll(dirPathAgent)
 }
