@@ -17,6 +17,16 @@ type stages struct {
 	diagnostic        *Diagnostic // Infos about the process
 }
 
+// Stages initializes a new set of stages with the provided configuration.
+func Stages(name string, _stages ...*stage) *stages {
+	return &stages{
+		stages:            _stages,
+		executionOrder:    0,
+		shouldStopIfError: true,
+		parallel:          false,
+	}
+}
+
 // ExecuteInPipeline executes all the stages within the pipeline.
 func (s *stages) ExecuteInPipeline(p *Pipeline) error {
 

@@ -29,16 +29,6 @@ type executor struct {
 type Exec func(p *Pipeline) error
 
 
-// Stages initializes a new set of stages with the provided configuration.
-func Stages(name string, _stages ...*stage) *stages {
-	return &stages{
-		stages:            _stages,
-		executionOrder:    0,
-		shouldStopIfError: true,
-		parallel:          false,
-	}
-}
-
 // Execute executes a task and handles retries on failure.
 func (e Exec) Execute(p *Pipeline) error {
 	return e(p)
@@ -71,11 +61,28 @@ func Stage(name string, executables ...executable) *stage {
 	}
 }
 
-// Execute runs the tasks in a stage sequentially and records the elapsed time.
-//
-// TODO : implement the retries
+// Execute runs the executables in a stage sequentially and records the elapsed time.
+// If there is retries before failure
 func (s *stage) Execute(p *Pipeline) error {
+	s.Diagnostic = NewDiag(fmt.Sprintf("%s#%d %s", p.id, s.executionOrder, s.name))
 
+    var err error
+    var i uint16 = 0
+    for true {
+        err = s.executeOnce(p)
+        if err != nil && i+1 < s.tries {
+            s.Diagnostic.NewDE(WARN, fmt.Sprintf("Task failed for the %d time, retrying in %d seconds", i+1, s.delay))
+            time.Sleep(time.Duration(s.delay) * time.Second)
+            i++
+            continue
+        }
+        break
+    }
+    return err
+}
+
+// Runs the executables without caring about the number of tries
+func (s *stage) executeOnce (p *Pipeline) error {
 	var lastErr error
 	defer func() {
 		for i, ex := range s.executors {
@@ -90,8 +97,6 @@ func (s *stage) Execute(p *Pipeline) error {
 			}
 		}
 	}()
-
-	s.Diagnostic = NewDiag(fmt.Sprintf("%s#%d %s", p.id, s.executionOrder, s.name))
 
 	beginning := time.Now().UnixMilli()
 
