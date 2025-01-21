@@ -398,6 +398,34 @@ func TestStagesExecute3(t *testing.T) {
 
 }
 
+func TestStagesExecute4(t *testing.T) {
+    p := _test_getPipeline("TestStagesExecute4")
+	stage1 := stage{
+		name: "stage1",
+		executors: []*executor{
+			{
+				ex: Exec(func(p *Pipeline) error {
+					return errors.New("test")
+				}),
+			},
+		},
+		shouldStopIfError: false,
+        tries: 2,
+        delay: 1,
+	}
+    begin := time.Now().Unix()
+    err := stage1.Execute(p)
+    end := time.Now().Unix()
+
+    if err == nil {
+        t.Fatalf("Expected error, but it worked instead")
+    }
+    delay := end - begin
+    if delay != 1 {
+        t.Fatalf("Expected 1, got %d", delay)
+    }
+}
+
 func TestOnceRunner(t *testing.T) {
 	p := _test_getPipeline("TestOnceRunner")
 	o := &onceRunner{
