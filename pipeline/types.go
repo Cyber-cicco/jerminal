@@ -16,8 +16,6 @@ const (
 // Implemented by : stages, onceRunner
 type pipelineEvents interface {
 	ExecuteInPipeline(p *Pipeline) error // Executes the component within the pipeline.
-	GetExecutionOrder() uint32           // Returns the execution order of the event.
-	SetExecutionOrder(uint32)            // Sets the execution order of the event
 	GetShouldStopIfError() bool          // Indicates if the pipeline should stop on error.
 	GetName() string
 }

@@ -105,12 +105,3 @@ func (s *stages) GetShouldStopIfError() bool {
 	return s.shouldStopIfError
 }
 
-// GetExecutionOrder returns the execution order of the stages.
-func (s *stages) GetExecutionOrder() uint32 {
-	return s.executionOrder
-}
-
-func (s *stages) SetExecutionOrder(order uint32) {
-	s.executionOrder = order
-}
-

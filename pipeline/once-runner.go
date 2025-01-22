@@ -29,15 +29,6 @@ func (o *onceRunner) GetShouldStopIfError() bool {
 	return true
 }
 
-// GetExecutionOrder returns the execution order for the OnceRunner.
-func (o *onceRunner) GetExecutionOrder() uint32 {
-	return o.executionOrder
-}
-
-func (o *onceRunner) SetExecutionOrder(order uint32) {
-	o.executionOrder = order
-}
-
 // RunOnce initializes a OnceRunner with the specified executables.
 func RunOnce(executables ...executable) *onceRunner {
 	return &onceRunner{
