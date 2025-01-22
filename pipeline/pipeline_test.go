@@ -22,16 +22,16 @@ func _test_getPipeline(agentId string) *Pipeline {
 		inerror:       false,
 		Diagnostic:    &Diagnostic{},
 		State: state.GetStateCustomConf(&state.Config{
-			AgentDir:    "./test/agent",
-			PipelineDir: "./test/pipeline",
-            JerminalResourcePath: "../resources/jerminal.json",
+			AgentDir:             "./test/agent",
+			PipelineDir:          "./test/pipeline",
+			JerminalResourcePath: "../resources/jerminal.json",
 		}),
 	}
 }
 
 func TestPipelineExecution1(t *testing.T) {
 	actual := 0
-	expected := 44
+	expected := 46
 
 	p, err := SetPipeline("test",
 		Agent("test"),
@@ -107,25 +107,42 @@ func TestPipelineExecution1(t *testing.T) {
 				}),
 			),
 		),
+		Post(
+			Success(func(p *Pipeline) error {
+                t.Log("in success")
+				actual++
+				return nil
+			}),
+			Failure(func(p *Pipeline) error {
+                t.Log("in failure")
+				actual--
+				return nil
+			}),
+			Always(func(p *Pipeline) error {
+                t.Log("in always")
+				actual++
+				return nil
+			}),
+		),
 	)
 
-    if err != nil {
-        t.Fatalf("Expected no error, got %v", err)
-    }
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
 
-    err = p.ExecutePipeline()
+	err = p.ExecutePipeline()
 
-    if err != nil {
-        t.Fatalf("Expected no error, got %v", err)
-    }
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
 
-    if p.inerror {
-        t.Fatalf("Pipeline should have been in error")
-    }
+	if p.inerror {
+		t.Fatalf("Pipeline should not have been in error")
+	}
 
-    if expected != actual {
-        t.Fatalf("Expected %d, got %d", expected, actual)
-    }
+	if expected != actual {
+		t.Fatalf("Expected %d, got %d", expected, actual)
+	}
 }
 
 func TestPipelineExecution2(t *testing.T) {
@@ -202,23 +219,40 @@ func TestPipelineExecution2(t *testing.T) {
 				}),
 			),
 		),
+		Post(
+			Success(func(p *Pipeline) error {
+                t.Log("in success")
+				actual++
+				return nil
+			}),
+			Failure(func(p *Pipeline) error {
+                t.Log("in failure")
+				actual--
+				return nil
+			}),
+			Always(func(p *Pipeline) error {
+                t.Log("in always")
+				actual++
+				return nil
+			}),
+		),
 	)
 
-    if err != nil {
-        t.Fatalf("Expected no error, got %v", err)
-    }
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
 
-    err = p.ExecutePipeline()
+	err = p.ExecutePipeline()
 
-    if err != nil {
-        t.Fatalf("Expected no error but got %v", err)
-    }
+	if err != nil {
+		t.Fatalf("Expected no error but got %v", err)
+	}
 
-    if !p.inerror {
-        t.Fatalf("Pipeline should have been in error")
-    }
+	if !p.inerror {
+		t.Fatalf("Pipeline should have been in error")
+	}
 
-    if expected != actual {
-        t.Fatalf("Expected %d, got %d", expected, actual)
-    }
+	if expected != actual {
+		t.Fatalf("Expected %d, got %d", expected, actual)
+	}
 }

@@ -194,7 +194,8 @@ func Cache(dirname string) executable {
 
 		_, err = os.Stat(cachePath)
 
-		//TODO : implement a system to checksum the files to see which have changed
+		//TODO : implement a caching mecanism that does a checksum of all files and copies only
+        // the ones that have changed 
 		if err == nil {
 			err = os.RemoveAll(cachePath)
 			if err != nil {

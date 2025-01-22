@@ -2,6 +2,8 @@ package pipeline
 
 import (
 	"errors"
+	"os"
+	"path/filepath"
 	"testing"
 )
 
@@ -165,3 +167,19 @@ func TestExecTryCatch(t *testing.T) {
 
 }
 
+
+func TestCache(t *testing.T) {
+    p := _test_getPipeline("TestCache")
+    cache := Cache("test")
+    agentPath := filepath.Join(p.State.AgentDir, p.Agent.Identifier)
+    pipeLinePath := filepath.Join(p.State.PipelineDir, p.id.String())
+    p.mainDirectory = agentPath
+    p.directory = agentPath
+    os.MkdirAll(filepath.Join(p.directory, "test"), os.ModePerm)
+    cache.Execute(p)
+    _, err := os.Stat(filepath.Join(pipeLinePath, "test"))
+
+    if err != nil {
+        t.Fatalf("Expected no error, got %s", err)
+    }
+}

@@ -12,12 +12,12 @@ type Always func(p *Pipeline) error
 
 func (p *post) ExecuteInPipeline(pipeline *Pipeline) error {
     if pipeline.inerror {
-        err := p.success.Execute(pipeline)
+        err := p.failure.Execute(pipeline)
         if err != nil {
             return err
         }
     } else {
-        err := p.failure.Execute(pipeline)
+        err := p.success.Execute(pipeline)
         if err != nil {
             return err
         }
