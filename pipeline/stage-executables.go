@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/Cyber-cicco/jerminal/utils"
 )
 
 // stage represents a single step in a pipeline.
@@ -188,28 +187,22 @@ func Cache(dirname string) executable {
 		targetPath := filepath.Join(p.directory, dirname)
 		cachePath := filepath.Join(p.State.PipelineDir, p.id.String(), dirname)
 		_, err := os.Stat(targetPath)
+
 		if err != nil {
 			return err
 		}
 
 		_, err = os.Stat(cachePath)
 
-		//TODO : implement a caching mecanism that does a checksum of all files and copies only
-        // the ones that have changed 
-		if err == nil {
-			err = os.RemoveAll(cachePath)
-			if err != nil {
-				return err
-			}
-		}
-
-		err = os.MkdirAll(cachePath, os.ModePerm)
-
 		if err != nil {
-			return err
+            err = os.MkdirAll(cachePath, os.ModePerm)
+            if err != nil {
+                return err
+            }
 		}
 
-		err = utils.CopyDir(targetPath, cachePath)
+        sh := SH("rsync", targetPath, cachePath)
+        err = sh.Execute(p)
 
 		return err
 	})
