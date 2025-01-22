@@ -15,8 +15,8 @@ import (
 //diretory, and one to execute later that gets the puts the current directory back to the original
 //
 // It should be used with the ExecDefer function
-func CD(dir string) (func(p *Pipeline) error, executable){
-	return func(p *Pipeline) error {
+func CD(dir string) executor {
+    cd := func(p *Pipeline) error {
 		// Reject absolute paths
 		if filepath.IsAbs(dir) {
 			return errors.New("absolute paths are not allowed")
@@ -24,11 +24,7 @@ func CD(dir string) (func(p *Pipeline) error, executable){
 
 		// Prevent navigation to parent directories
 		cleanDir := filepath.Clean(dir)
-		if cleanDir == ".." || filepath.HasPrefix(cleanDir, "../") {
-			return errors.New("parent directory access is not allowed")
-		}
 
-		// Join the sanitized relative path with the current directory
 		newPath := filepath.Join(p.directory, cleanDir)
 
 		// Check if the resulting path exists and is a directory
@@ -43,21 +39,27 @@ func CD(dir string) (func(p *Pipeline) error, executable){
 		// Update the pipeline's directory
 		p.directory = newPath
 		return nil
-	}, 
+	}
 
-    Exec(func(p *Pipeline) error {
+    defered := func(p *Pipeline) error {
         p.directory = p.mainDirectory
         return nil
-    })
+    }
+
+    return executor{
+    	ex:           Exec(cd),
+    	recoveryFunc: nil,
+    	deferedFunc:  Exec(defered),
+    }
 }
 
 // SH Executes a command in the directory of the current agent
-func SH(name string, args ...string) func(p *Pipeline) error {
-    return func(p *Pipeline) error {
+func SH(name string, args ...string) executable {
+    return Exec(func(p *Pipeline) error {
         cmd := exec.Command(name, args...)
         cmd.Dir = p.directory
         out, err := cmd.Output()
         log.Println(out)
         return err
-    }
+    })
 }
