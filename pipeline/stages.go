@@ -9,7 +9,6 @@ import (
 // Stages represents a collection of pipeline stages.
 // Each stage has an execution order and can be configured to stop if an error occurs.
 type stages struct {
-	executionOrder    uint32      // Order in which the stages should be executed.
 	name              string      // The identifier of the stages
 	stages            []*stage    // List of stages in the pipeline.
 	shouldStopIfError bool        // Determines whether execution should stop on error.
@@ -21,7 +20,6 @@ type stages struct {
 func Stages(name string, _stages ...*stage) *stages {
 	return &stages{
 		stages:            _stages,
-		executionOrder:    0,
 		shouldStopIfError: true,
 		parallel:          false,
 	}
