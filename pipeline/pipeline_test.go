@@ -8,7 +8,7 @@ import (
 
 func TestPipelineExecution1(t *testing.T) {
 	actual := 0
-	expected := 22
+	expected := 44
 
 	p, err := SetPipeline("test",
 		Agent("test"),
@@ -74,6 +74,10 @@ func TestPipelineExecution1(t *testing.T) {
 				),
 			).DontStopIfErr(),
 			Stage("s2s3",
+				Defer(func(p *Pipeline) error {
+					actual *= 2
+					return nil
+				}),
 				Exec(func(p *Pipeline) error {
 					actual++
 					return nil

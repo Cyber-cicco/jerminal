@@ -33,7 +33,6 @@ type executor struct {
 // Exec defines a function type that performs a task within a pipeline.
 type Exec func(p *Pipeline) error
 
-
 // Execute executes a task and handles retries on failure.
 func (e Exec) Execute(p *Pipeline) error {
 	return e(p)
@@ -71,23 +70,23 @@ func Stage(name string, executables ...executable) *stage {
 func (s *stage) Execute(p *Pipeline) error {
 	s.Diagnostic = NewDiag(fmt.Sprintf("%s#%d %s", p.id, s.executionOrder, s.name))
 
-    var err error
-    var i uint16 = 0
-    for true {
-        err = s.executeOnce(p)
-        if err != nil && i+1 < s.tries {
-            s.Diagnostic.NewDE(WARN, fmt.Sprintf("Task failed for the %d time, retrying in %d seconds", i+1, s.delay))
-            time.Sleep(time.Duration(s.delay) * time.Second)
-            i++
-            continue
-        }
-        break
-    }
-    return err
+	var err error
+	var i uint16 = 0
+	for true {
+		err = s.executeOnce(p)
+		if err != nil && i+1 < s.tries {
+			s.Diagnostic.NewDE(WARN, fmt.Sprintf("Task failed for the %d time, retrying in %d seconds", i+1, s.delay))
+			time.Sleep(time.Duration(s.delay) * time.Second)
+			i++
+			continue
+		}
+		break
+	}
+	return err
 }
 
 // Runs the executables without caring about the number of tries
-func (s *stage) executeOnce (p *Pipeline) error {
+func (s *stage) executeOnce(p *Pipeline) error {
 	var lastErr error
 	defer func() {
 		for i, ex := range s.executors {
@@ -108,11 +107,13 @@ func (s *stage) executeOnce (p *Pipeline) error {
 	s.Diagnostic.NewDE(INFO, fmt.Sprintf("Stage %s started", s.name))
 
 	for i, ex := range s.executors {
-		s.Diagnostic.NewDE(DEBUG, fmt.Sprintf("executing task n°%d of stage", i))
-		err := ex.Execute(p)
-		if err != nil {
-			s.Diagnostic.NewDE(ERROR, fmt.Sprintf("Stage %s got error %v in execution n°%d", s.name, err, i))
-			return err
+		if ex.ex != nil {
+			s.Diagnostic.NewDE(DEBUG, fmt.Sprintf("executing task n°%d of stage", i))
+			err := ex.Execute(p)
+			if err != nil {
+				s.Diagnostic.NewDE(ERROR, fmt.Sprintf("Stage %s got error %v in execution n°%d", s.name, err, i))
+				return err
+			}
 		}
 	}
 
@@ -122,7 +123,6 @@ func (s *stage) executeOnce (p *Pipeline) error {
 	s.Diagnostic.NewDE(INFO, fmt.Sprintf("process %s finished in %d ms", s.name, s.elapsedTime))
 	return lastErr
 }
-
 
 func (s *stage) GetExecutionOrder() uint32 {
 	return s.executionOrder
@@ -174,7 +174,7 @@ func ExecDefer(ex Exec, defered executable) executable {
 }
 
 // Defer wraps an executable with a defered function to execute at the end of the stage.
-func Defer(defered executable) executable {
+func Defer(defered Exec) executable {
 	return &executor{
 		ex:           nil,
 		recoveryFunc: nil,
@@ -184,32 +184,32 @@ func Defer(defered executable) executable {
 
 // Cache copies a directory in the cache
 func Cache(dirname string) executable {
-    return Exec(func(p *Pipeline) error {
-        targetPath := filepath.Join(p.directory, dirname)
-        cachePath := filepath.Join(p.State.PipelineDir, p.id.String(), dirname)
-        _, err := os.Stat(targetPath)
-        if err != nil {
-            return err
-        }
+	return Exec(func(p *Pipeline) error {
+		targetPath := filepath.Join(p.directory, dirname)
+		cachePath := filepath.Join(p.State.PipelineDir, p.id.String(), dirname)
+		_, err := os.Stat(targetPath)
+		if err != nil {
+			return err
+		}
 
-        _, err = os.Stat(cachePath)
+		_, err = os.Stat(cachePath)
 
-        //TODO : implement a system to checksum the files to see which have changed
-        if err == nil {
-            err = os.RemoveAll(cachePath)
-            if err != nil {
-                return err
-            }
-        }
+		//TODO : implement a system to checksum the files to see which have changed
+		if err == nil {
+			err = os.RemoveAll(cachePath)
+			if err != nil {
+				return err
+			}
+		}
 
-        err = os.MkdirAll(cachePath, os.ModePerm)
+		err = os.MkdirAll(cachePath, os.ModePerm)
 
-        if err != nil {
-            return err
-        }
+		if err != nil {
+			return err
+		}
 
-        err = utils.CopyDir(targetPath, cachePath)
+		err = utils.CopyDir(targetPath, cachePath)
 
-        return err
-    })
+		return err
+	})
 }
