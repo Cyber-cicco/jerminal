@@ -25,6 +25,7 @@ func _test_getPipeline(agentId string) *Pipeline {
 			AgentDir:             "./test/agent",
 			PipelineDir:          "./test/pipeline",
 			JerminalResourcePath: "../resources/jerminal.json",
+            AgentResourcePath: "../resources/agents.json",
 		}),
 	}
 }

@@ -128,3 +128,15 @@ func Agent(id string) AgentProvider {
 		return p.State.GetAgent(id)
 	}
 }
+
+func AnyAgent() AgentProvider {
+    return func(p *Pipeline) *state.Agent {
+        return p.State.GetAnyAgent()
+    }
+}
+
+func DefaultAgent() AgentProvider {
+    return func(p *Pipeline) *state.Agent {
+        return p.State.DefaultAgent()
+    }
+}

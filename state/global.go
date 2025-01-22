@@ -1,6 +1,7 @@
 package state
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -20,7 +21,7 @@ type ApplicationState struct {
 type Agent struct {
 	sync.Mutex
 	BusySig    *sync.Cond        // Signal informing if the Agent is busy
-	Identifier string            // unique string representing an Agent
+	Identifier string            `json:"identifier"` // unique string representing an Agent
 	Busy       bool              // true if the agent is executing a pipeline
 	State      *ApplicationState // The application state
 }
@@ -30,45 +31,96 @@ var (
 	once  sync.Once
 )
 
+const DEFAULT_AGENT = "6524a5fc-0772-4684-82d7-6900c444162b"
+
 // Creates an object containing infos about the application process
 //
 // SHOULD ONLY BE CALLED ONCE
-func initializeApplicationState(conf *Config) {
+func initializeApplicationState(conf *Config) error {
+	agents := []*Agent{}
 	state = &ApplicationState{
-		agents: make(map[string]*Agent),
 		Config: conf,
 	}
+
+	// Getting the agents from the config file
+	file, err := os.ReadFile(conf.AgentResourcePath)
+	if err != nil {
+        fmt.Printf("err: %v\n", err)
+		return err
+	}
+
+	if err = json.Unmarshal(file, &agents); err != nil {
+		return err
+	}
+
+	//Creating the map of agents
+	agentMap := make(map[string]*Agent)
+
+	defaultAgent := &Agent{
+		Identifier: DEFAULT_AGENT,
+		Busy:       false,
+		State:      state,
+	}
+	defaultAgent.BusySig = sync.NewCond(&defaultAgent.Mutex)
+	agentMap[DEFAULT_AGENT] = defaultAgent
+
+	for _, agent := range agents {
+		newAgent := &Agent{
+			Identifier: agent.Identifier,
+			Busy:       false,
+			State:      state,
+		}
+		defaultAgent.BusySig = sync.NewCond(&defaultAgent.Mutex)
+		agentMap[agent.Identifier] = newAgent
+	}
+
+	state.agents = agentMap
+
+    println("caca")
+    println("caca")
+    println("caca")
+    println("caca")
+    println("caca")
+    println("caca")
+    println("caca")
+    println("caca")
+	return nil
 }
 
-// Gets the current state of the application with a default config. 
+// Gets the current state of the application with a default config.
 // Updates the state of the config, so if you change the config file
 // between getting the previous state and this one, it will run with
 // the updated config
 //
-// Mutually exclusive with GetStateCustomConf
+// # Mutually exclusive with GetStateCustomConf
 //
 // Should be used by default
 func GetState() (*ApplicationState, error) {
+    var err error
 	once.Do(func() {
-        fmt.Printf("\"in once\": %v\n", "in once")
+		fmt.Printf("\"in once\": %v\n", "in once")
 		conf := &Config{
-            JerminalResourcePath: "../resources/jerminal.json",
-        }
-		initializeApplicationState(conf)
+			JerminalResourcePath: "../resources/jerminal.json",
+			AgentResourcePath:    "../resources/agents.json",
+		}
+        err = initializeApplicationState(conf)
 	})
+    if err != nil {
+        return nil, err
+    }
 	return state, state.UpdateConfig()
 }
 
-// Gets the current state of the application with a custom config. 
+// Gets the current state of the application with a custom config.
 //
-// Mutually exclusive with GetState
+// # Mutually exclusive with GetState
 //
 // Should be used for tests
 func GetStateCustomConf(conf *Config) *ApplicationState {
 	once.Do(func() {
-        fmt.Printf("\"in once custom\": %v\n", "in once")
-        initializeApplicationState(conf)
-    })
+		fmt.Printf("\"in once custom\": %v\n", "in once")
+		initializeApplicationState(conf)
+	})
 	return state
 }
 
@@ -114,6 +166,7 @@ func (a *Agent) CleanUp() error {
 //
 // Creates it does not exist yet
 func (s *ApplicationState) GetAgent(id string) *Agent {
+
 	ag, ok := s.agents[id]
 	if !ok {
 		ag = &Agent{
@@ -124,16 +177,38 @@ func (s *ApplicationState) GetAgent(id string) *Agent {
 		ag.BusySig = sync.NewCond(&ag.Mutex)
 		s.agents[id] = ag
 	}
+
 	return ag
 }
 
+// Gets the first non busy existing agent
+//
+// If every agent is busy, gets the default agent
+func (s *ApplicationState) GetAnyAgent() *Agent {
+
+	for _, agent := range s.agents {
+		if !agent.Busy {
+			return agent
+		}
+	}
+	return s.agents[DEFAULT_AGENT]
+}
+
+func (s *ApplicationState) DefaultAgent() *Agent {
+    return s.agents[DEFAULT_AGENT]
+}
+
+
+// Allows for retreival of configuration at an instant
+// allowing for the pipeline to stay coherent even if a change
+// to the config is made during it's runtime
 func (s *ApplicationState) CloneConfig() *Config {
-    s.Config.Lock()
-    defer s.Config.Unlock()
-    conf := Config{
-    	AgentDir:             s.AgentDir,
-    	PipelineDir:          s.PipelineDir,
-    	JerminalResourcePath: s.JerminalResourcePath,
-    }
-    return &conf
+	s.Config.Lock()
+	defer s.Config.Unlock()
+	conf := Config{
+		AgentDir:             s.AgentDir,
+		PipelineDir:          s.PipelineDir,
+		JerminalResourcePath: s.JerminalResourcePath,
+	}
+	return &conf
 }

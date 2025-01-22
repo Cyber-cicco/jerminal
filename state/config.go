@@ -2,7 +2,6 @@ package state
 
 import (
 	"encoding/json"
-	"fmt"
 	"os"
 	"sync"
 )
@@ -13,6 +12,7 @@ type Config struct {
 	AgentDir             string `json:"agent-dir"`    // Source directory where agents do their work
 	PipelineDir          string `json:"pipeline-dir"` // Source directory where pipelines cache the results of commands that should run once
 	JerminalResourcePath string
+	AgentResourcePath    string
 }
 
 // UpdateConfig Creates the config object
@@ -23,16 +23,13 @@ func (c *Config) UpdateConfig() error {
 	defer c.Unlock()
 	file, err := os.ReadFile(c.JerminalResourcePath)
 	if err != nil {
-        fmt.Printf("\"err in config\": %v\n", "err in config")
-        fmt.Printf("c.jerminalResourcePath: %v\n", c.JerminalResourcePath)
-        fmt.Printf("c: %v\n", c)
 		return err
 	}
 	if err = json.Unmarshal(file, c); err != nil {
 		return err
 	}
 	c.setupEnv()
-    return nil
+	return nil
 }
 
 // setupEnv allows to read the env variables in the config file
