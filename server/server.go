@@ -4,6 +4,7 @@ import (
 	"crypto/hmac"
 	"crypto/sha1"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -81,7 +82,13 @@ func handleWebhook(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to read request body", http.StatusInternalServerError)
 		return
 	}
-    fmt.Printf("body: %v\n", body)
+    var payload WebhookPayload
+    err = json.Unmarshal(body, &payload)
+    if err != nil {
+		http.Error(w, "Failed to read request body", http.StatusInternalServerError)
+        return 
+    }
+    fmt.Printf("body: %v\n", payload)
 	defer r.Body.Close()
 
 	// Get the signature from the header
