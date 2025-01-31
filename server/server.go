@@ -40,7 +40,7 @@ func (s *Server) Listen() {
 }
 
 func (s *Server) TestListen() {
-    http.Handle("/hook/", http.HandlerFunc(handleWebhook))
+    http.Handle("/hook", http.HandlerFunc(handleWebhook))
 	if s.port != 0 {
         fmt.Printf("Listening on port %v\n", s.port)
         http.ListenAndServe(fmt.Sprintf(":%d", s.port), nil)
