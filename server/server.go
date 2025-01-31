@@ -106,6 +106,11 @@ func handleWebhook(w http.ResponseWriter, r *http.Request) {
 func verifySignature(secret, signature string, body []byte) bool {
 	// The signature is in the format "sha1=hash"
 	const prefix = "sha1="
+
+    if !strings.HasPrefix(signature, prefix) {
+        return false
+    }
+
 	if len(signature) != len(prefix)+sha1.Size*2 || !hmac.Equal([]byte(signature[:len(prefix)]), []byte(prefix)) {
 		return false
 	}
