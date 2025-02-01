@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+
 	. "github.com/Cyber-cicco/jerminal/pipeline"
 	"github.com/Cyber-cicco/jerminal/server"
 )
@@ -30,9 +32,25 @@ func main() {
 			),
 			Stage("build",
 				CD("symfgoni/internals"),
-				SH("go", "build", "-o","exe"),
-                SH("cp", "exe", "/home/hijokaidan/PC/jerminal/exe"),
+				SH("go", "build", "-o", "exe"),
+				SH("cp", "exe", "/home/hijokaidan/PC/jerminal/exe"),
 			),
+		),
+		Post(
+			Success(func(p *Pipeline) error {
+                fmt.Printf("Job was successfully executed")
+                return nil
+            }),
+            Failure(func(p *Pipeline) error {
+                fmt.Println("Job failed")
+                return nil
+            }),
+            Always(func(p *Pipeline) error {
+                for _, ev := range p.Diagnostic.Events {
+                    fmt.Printf("%v, %v\n", ev.Importance, ev.Description)
+                }
+                return nil
+            }),
 		),
 	)
 	if err != nil {

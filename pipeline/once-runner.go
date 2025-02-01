@@ -39,7 +39,7 @@ func RunOnce(executables ...executable) *onceRunner {
 // ExecuteInPipeline runs all executables in a OnceRunner.
 func (o *onceRunner) ExecuteInPipeline(p *Pipeline) error {
 
-    pipelinePath := filepath.Join(p.State.PipelineDir, p.id.String())
+    pipelinePath := filepath.Join(p.state.PipelineDir, p.id.String())
     empty, err := utils.IsDirEmpty(p.directory)
 
     if err != nil {
@@ -50,8 +50,8 @@ func (o *onceRunner) ExecuteInPipeline(p *Pipeline) error {
         return errors.New("Agent directory should be empty when executing a task that runs once per pipeline")
     }
 
-    if p.timeRan > 0 {
-        p.timeRan++
+    if p.TimeRan > 0 {
+        p.TimeRan++
         return nil
     }
 
@@ -68,6 +68,6 @@ func (o *onceRunner) ExecuteInPipeline(p *Pipeline) error {
         return err
     }
 
-    p.timeRan++
+    p.TimeRan++
 	return nil
 }

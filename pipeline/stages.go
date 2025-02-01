@@ -13,7 +13,6 @@ type stages struct {
 	stages            []*stage    // List of stages in the pipeline.
 	shouldStopIfError bool        // Determines whether execution should stop on error.
 	parallel          bool        // Determines wether execution of stages should be put in goroutines
-	diagnostic        *Diagnostic // Infos about the process
 }
 
 // Stages initializes a new set of stages with the provided configuration.
@@ -29,18 +28,20 @@ func Stages(name string, _stages ...*stage) *stages {
 func (s *stages) ExecuteInPipeline(p *Pipeline) error {
 
 	diag := NewDiag(fmt.Sprintf("%s#%s", p.Name, s.name))
-	s.diagnostic = diag
+	p.Diagnostic.AddChild(diag)
+    p.Diagnostic = diag
 	beginning := time.Now().UnixMilli()
 	diag.NewDE(INFO, fmt.Sprintf("stage %s started", s.name))
 
 	defer func() {
 		end := time.Now().UnixMilli()
 		elapsedTime := end - beginning
-
-		diag.NewDE(INFO, fmt.Sprintf("stage %s ended successfully. Took %d ms", s.name, elapsedTime))
+		diag.NewDE(INFO, fmt.Sprintf("stages %s ended successfully. Took %d ms", s.name, elapsedTime))
+        p.Diagnostic = p.Diagnostic.parent
 	}()
 
 	// Parallel execution of pipelines
+    // Parallel execution seem to pose a problem with diags in stages
 	if s.parallel {
 		diag.NewDE(DEBUG, "starting parallel tasks")
 		var wg sync.WaitGroup
@@ -49,14 +50,12 @@ func (s *stages) ExecuteInPipeline(p *Pipeline) error {
 			wg.Add(1)
 			go func(p *Pipeline, s *stage) {
 				defer wg.Done()
-				err := s.Execute(p)
+				err := s.ExecuteStage(p)
 				if err != nil {
 					if s.shouldStopIfError {
 						errchan <- err
 						return
 					}
-					diag.Lock()
-					defer diag.Unlock()
 					diag.NewDE(WARN, fmt.Sprintf("got non blocking error in stage %s : %v", s.name, err))
 				}
 			}(p, s)
@@ -77,7 +76,7 @@ func (s *stages) ExecuteInPipeline(p *Pipeline) error {
 	}
 
 	for _, stage := range s.stages {
-		err := stage.Execute(p)
+		err := stage.ExecuteStage(p)
 		if err != nil {
 			if stage.shouldStopIfError {
 				return err

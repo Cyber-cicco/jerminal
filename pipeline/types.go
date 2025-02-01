@@ -22,7 +22,7 @@ type pipelineEvents interface {
 
 // executable represents an entity that can be executed within a pipeline.
 //
-// Implemented by stage, Exec, executor
+// Implemented by Exec, executor
 type executable interface {
 	Execute(p *Pipeline) error // Executes the entity.
 }

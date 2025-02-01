@@ -54,10 +54,9 @@ func TestStageExecute1(t *testing.T) {
 		tries:             0,
 		delay:             0,
 		executionOrder:    0,
-		Diagnostic:        &Diagnostic{},
 	}
 
-	err := stage.Execute(p)
+	err := stage.ExecuteStage(p)
 
 	if err != nil {
 		t.Fatalf("Did not expect error, got %v", err)
@@ -115,10 +114,9 @@ func TestStageExecute2(t *testing.T) {
 		tries:             0,
 		delay:             0,
 		executionOrder:    0,
-		Diagnostic:        &Diagnostic{},
 	}
 
-	err := stage.Execute(p)
+	err := stage.ExecuteStage(p)
 
 	if err == nil {
 		t.Fatalf("Expected error nothing instead")
@@ -171,8 +169,8 @@ func TestExecTryCatch(t *testing.T) {
 func TestCache(t *testing.T) {
     p := _test_getPipeline("TestCache")
     cache := Cache("test")
-    agentPath := filepath.Join(p.State.AgentDir, p.Agent.Identifier)
-    pipeLinePath := filepath.Join(p.State.PipelineDir, p.id.String())
+    agentPath := filepath.Join(p.state.AgentDir, p.agent.Identifier)
+    pipeLinePath := filepath.Join(p.state.PipelineDir, p.id.String())
     p.mainDirectory = agentPath
     p.directory = agentPath
     os.MkdirAll(filepath.Join(p.directory, "test"), os.ModePerm)

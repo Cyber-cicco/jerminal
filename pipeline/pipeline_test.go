@@ -10,18 +10,18 @@ import (
 
 func _test_getPipeline(agentId string) *Pipeline {
 	return &Pipeline{
-		Agent: &state.Agent{
+		agent: &state.Agent{
 			Identifier: agentId,
 		},
 		Name:          "test",
 		mainDirectory: "./test",
 		directory:     "./test",
 		id:            uuid.New(),
-		timeRan:       0,
+		TimeRan:       0,
 		events:        []pipelineEvents{},
-		inerror:       false,
+		Inerror:       false,
 		Diagnostic:    &Diagnostic{},
-		State: state.GetStateCustomConf(&state.Config{
+		state: state.GetStateCustomConf(&state.Config{
 			AgentDir:             "./test/agent",
 			PipelineDir:          "./test/pipeline",
 			JerminalResourcePath: "../resources/jerminal.json",
@@ -137,7 +137,7 @@ func TestPipelineExecution1(t *testing.T) {
 		t.Fatalf("Expected no error, got %v", err)
 	}
 
-	if p.inerror {
+	if p.Inerror {
 		t.Fatalf("Pipeline should not have been in error")
 	}
 
@@ -249,7 +249,7 @@ func TestPipelineExecution2(t *testing.T) {
 		t.Fatalf("Expected no error but got %v", err)
 	}
 
-	if !p.inerror {
+	if !p.Inerror {
 		t.Fatalf("Pipeline should have been in error")
 	}
 

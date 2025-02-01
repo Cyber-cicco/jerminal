@@ -41,7 +41,6 @@ func TestStagesExecute1(t *testing.T) {
 		},
 		shouldStopIfError: true,
 		parallel:          false,
-		diagnostic:        &Diagnostic{},
 	}
 	err := stages.ExecuteInPipeline(p)
 
@@ -117,7 +116,6 @@ func TestStagesExecute2(t *testing.T) {
 		},
 		shouldStopIfError: false,
 		parallel:          false,
-		diagnostic:        &Diagnostic{},
 	}
 	err := stages.ExecuteInPipeline(p)
 
@@ -175,7 +173,6 @@ func TestStagesExecute3(t *testing.T) {
 		},
 		shouldStopIfError: false,
 		parallel:          false,
-		diagnostic:        &Diagnostic{},
 	}
 	begin := time.Now().Unix()
 	err := stages1.ExecuteInPipeline(p)
@@ -224,7 +221,7 @@ func TestStagesExecute4(t *testing.T) {
         delay: 1,
 	}
     begin := time.Now().Unix()
-    err := stage1.Execute(p)
+    err := stage1.ExecuteStage(p)
     end := time.Now().Unix()
 
     if err == nil {

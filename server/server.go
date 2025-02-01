@@ -57,11 +57,10 @@ func (s *Server) handleWebhook(w http.ResponseWriter, r *http.Request) {
     }
 
     // TODO : ADD AUTHENTICATION
-    payload, _, err := getBody(r.Body)
+    _, _, err = getBody(r.Body)
 	defer r.Body.Close()
 
     //TODO add logging to MongoDB or json files
-    fmt.Printf("body: %v\n", payload)
 
 	if err != nil {
 		http.Error(w, "Failed to read request body", http.StatusInternalServerError)
@@ -75,12 +74,13 @@ func (s *Server) handleWebhook(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) BeginPipeline(id string) {
-    pipeline, ok := s.pipelines[id]
+    pipeline, ok := s.pipelines[id] // pipeline is a pointer to a map of predefined pipelines
     if !ok {
         fmt.Printf("Wrong id received %s", id)
         return
     }
-    err := pipeline.ExecutePipeline()
+    clone := *pipeline
+    err := clone.ExecutePipeline()
     fmt.Printf("err: %v\n", err)
 }
 

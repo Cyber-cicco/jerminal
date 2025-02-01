@@ -11,18 +11,18 @@ type Failure func(p *Pipeline) error
 type Always func(p *Pipeline) error
 
 func (p *post) ExecuteInPipeline(pipeline *Pipeline) error {
-    if pipeline.inerror {
-        err := p.failure.Execute(pipeline)
+    if pipeline.Inerror {
+        err := p.failure.ExecuteError(pipeline)
         if err != nil {
             return err
         }
     } else {
-        err := p.success.Execute(pipeline)
+        err := p.success.ExecuteSuccess(pipeline)
         if err != nil {
             return err
         }
     }
-    return p.always.Execute(pipeline)
+    return p.always.ExecuteAlways(pipeline)
 }
 
 func (p *post) GetName() string {
@@ -42,14 +42,14 @@ func (p *post) GetShouldStopIfError() bool {
 	return true
 }
 
-func (s Success) Execute(p *Pipeline) error {
+func (s Success) ExecuteSuccess(p *Pipeline) error {
     return s(p)
 }
 
-func (f Failure) Execute(p *Pipeline) error {
+func (f Failure) ExecuteError(p *Pipeline) error {
     return f(p)
 }
 
-func (a Always) Execute(p *Pipeline) error {
+func (a Always) ExecuteAlways(p *Pipeline) error {
     return a(p)
 }
