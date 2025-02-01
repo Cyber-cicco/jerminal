@@ -25,6 +25,9 @@ type Pipeline struct {
 	state         *state.ApplicationState // L'état de l'application
 	StartTime     time.Time               // Début de la pipeline
 
+    // TODO : There is a lot of indirections, maybe use an array and a custom walker that keeps track of indexes to walk the diags
+    // Might be a bit of a pain to Marshall and unmarshall though
+    // Will probably do it just for fun
 	Diagnostic  *Diagnostic // Infos about the current process. It can change based on what stage is getting executed.
 	ElapsedTime int64       // Time it took to run the Pipeline
 
@@ -154,6 +157,9 @@ func setPipelineWithState(name string, agent AgentProvider, state *state.Applica
 	}
 	p.agent = agent(&p)
 	return &p
+}
+func (p *Pipeline) ResetDiag() {
+    p.Diagnostic = p.Diagnostic.parent
 }
 
 // Agent retrieves an agent with the specified identifier.

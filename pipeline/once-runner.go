@@ -55,6 +55,8 @@ func (o *onceRunner) ExecuteInPipeline(p *Pipeline) error {
         return nil
     }
 
+    p.Diagnostic.NewDE(INFO, "Executing pipeline setup for subsequent runs")
+
     for _, ex := range o.executables {
         err := ex.Execute(p)
         if err != nil {

@@ -3,7 +3,17 @@ package pipeline
 import (
 	"encoding/json"
 	"fmt"
+	"time"
 )
+
+
+type JSONTime time.Time
+
+func (j JSONTime) MarshalJSON() ([]byte, error) {
+    //do your serializing here
+    stamp := fmt.Sprintf("\"%s\"", time.Time(j).Format(DATE_TIME_LAYOUT))
+    return []byte(stamp), nil
+}
 
 // EventType is used to distinguish between different types of pipeline logs
 type EventType string

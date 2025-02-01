@@ -63,10 +63,26 @@ func main() {
 		),
         standardPost,
 	)
+	p3, err := SetPipeline("test3", // 1 diag event for the start
+		AnyAgent(),
+		Stages("stages_1", // 1 diag for the stages
+			Stage("stage_1", // 1 diag for the stage
+				SH("echo", "bonjour"), // 1 diag event
+				SH("echo", "bonjour"), // 1 diag event
+				SH("echo", "bonjour"), // 1 diag event
+			),// 1 at the end of stages_1
+			Stage("stage_2", // 1 diag for the stage
+				SH("echo", "bonjour"), // 1 diag event
+				SH("echo", "bonjour"), // 1 diag event
+				SH("echo", "bonjour"), // 1 diag event
+			),// 1 at the end of stages_2
+		), // 1 diag at the end
+	)
+    p3.ReportJson()
 	if err != nil {
 		panic(err)
 	}
 	s := server.New(8002)
-	s.SetPipelines([]*Pipeline{p1, p2})
+	s.SetPipelines([]*Pipeline{p1, p2, p3})
 	s.Listen()
 }

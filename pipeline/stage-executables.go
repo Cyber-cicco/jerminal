@@ -36,7 +36,6 @@ func (e Exec) Execute(p *Pipeline) error {
 }
 
 // Stage initializes a new stage with the provided executables.
-// STAGE SHOULD NOT BE AN EXECUTABLE
 func Stage(name string, executables ...executable) *stage {
 	executors := make([]*executor, len(executables))
 	for i, ex := range executables {

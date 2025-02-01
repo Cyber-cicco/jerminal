@@ -11,6 +11,12 @@ type Failure func(p *Pipeline) error
 type Always func(p *Pipeline) error
 
 func (p *post) ExecuteInPipeline(pipeline *Pipeline) error {
+    diag := NewDiag("post")
+    pipeline.Diagnostic.AddChild(diag)
+    pipeline.Diagnostic = diag
+    defer func(){
+        pipeline.ResetDiag()
+    }()
     if pipeline.Inerror {
         err := p.failure.ExecuteError(pipeline)
         if err != nil {

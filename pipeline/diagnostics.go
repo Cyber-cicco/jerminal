@@ -15,11 +15,11 @@ var IMPORTANCE_STR = [5]string{"DEBUG", "INFO", "WARN", "ERROR", "CRITICAL"}
 
 // Informations about an element of the pipeline
 type Diagnostic struct {
-	Label        string        `json:"label"`    // Name of the diagnostic
-	identifier   uuid.UUID     `json:"-"`        // Unique identifier of the diagnostic
-	Date         time.Time     `json:"date"`     // Time the diagnostic was written
-	Inerror      bool          `json:"in-error"` // Tells if the attached process should be considered in error
-	Events       []pipelineLog `json:"logs"`     // Infos about what happened in the process
+	Label        string        `json:"label"`                                  // Name of the diagnostic
+	identifier   uuid.UUID     `json:"-"`                                      // Unique identifier of the diagnostic
+	Start         JSONTime      `json:"date" time_format:"2006-01-02 15:04:05"` // Time the diagnostic was written
+	Inerror      bool          `json:"in-error"`                               // Tells if the attached process should be considered in error
+	Events       []pipelineLog `json:"logs"`                                   // Infos about what happened in the process
 	sync.RWMutex `json:"-"`    // Can be used in goroutines so need to lock it
 	parent       *Diagnostic   `json:"-"` // Parent of the Diagnostic. Nil if does not exist
 }
@@ -42,7 +42,7 @@ func (d *Diagnostic) NewDE(importance DEImp, description string) {
 		Time:        time.Now().Format(DATE_TIME_LAYOUT),
 		Name:        d.Label,
 	}
-	newEvt.Log()
+	//newEvt.Log()
 	d.Events = append(d.Events, newEvt)
 }
 
@@ -53,7 +53,7 @@ func (d *Diagnostic) FilterBasedOnImportance(imp DEImp) *Diagnostic {
 	newDiag := &Diagnostic{
 		Label:      d.Label,
 		identifier: d.identifier,
-		Date:       d.Date,
+		Start:       d.Start,
 		Inerror:    d.Inerror,
 		parent:     d.parent,
 		Events:     []pipelineLog{},
@@ -62,14 +62,14 @@ func (d *Diagnostic) FilterBasedOnImportance(imp DEImp) *Diagnostic {
 		switch e := ev.(type) {
 		case *DiagnosticEvent:
 			{
-                if e.Importance >= imp {
-                    newDiag.Events = append(newDiag.Events, e)
-                }
+				if e.Importance >= imp {
+					newDiag.Events = append(newDiag.Events, e)
+				}
 			}
-        case *Diagnostic:
-            {
-                newDiag.Events = append(newDiag.Events, e.FilterBasedOnImportance(imp))
-            }
+		case *Diagnostic:
+			{
+				newDiag.Events = append(newDiag.Events, e.FilterBasedOnImportance(imp))
+			}
 		}
 	}
 	return newDiag
@@ -100,7 +100,7 @@ func NewDiag(name string) *Diagnostic {
 	return &Diagnostic{
 		Label:      name,
 		identifier: uuid.New(),
-		Date:       time.Now(),
+		Start:       JSONTime(time.Now()),
 		Inerror:    false,
 		Events:     []pipelineLog{},
 	}

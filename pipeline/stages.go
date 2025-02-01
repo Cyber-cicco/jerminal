@@ -38,7 +38,7 @@ func (s *stages) ExecuteInPipeline(p *Pipeline) error {
 		end := time.Now().UnixMilli()
 		elapsedTime := end - beginning
 		diag.NewDE(INFO, fmt.Sprintf("stages %s ended successfully. Took %d ms", s.name, elapsedTime))
-		p.Diagnostic = p.Diagnostic.parent
+		p.ResetDiag()
 	}()
 
 	// Parallel execution of pipelines
