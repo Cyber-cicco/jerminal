@@ -19,7 +19,6 @@ func main() {
 				return nil
 			}),
 			Always(func(p *Pipeline) error {
-				p.Diagnostic.Log()
 				return nil
 			}),
 		)
@@ -41,6 +40,7 @@ func main() {
 		),
         standardPost,
 	)
+    p1.ReportJson()
 	p2, err := SetPipeline("test2",
 		Agent("agent_2"),
 		RunOnce(

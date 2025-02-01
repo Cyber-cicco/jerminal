@@ -9,26 +9,27 @@ import (
 )
 
 const DATE_TIME_LAYOUT = "2006-01-02 15:04:05"
+const FILE_DATE_TIME_LAYOUT = "2006-01-02_15-04-05"
 
 var IMPORTANCE_STR = [5]string{"DEBUG", "INFO", "WARN", "ERROR", "CRITICAL"}
 
 // Informations about an element of the pipeline
 type Diagnostic struct {
-	Label        string        // Name of the diagnostic
-	identifier   uuid.UUID     // Unique identifier of the diagnostic
-	Date         time.Time     // Time the diagnostic was written
-	Inerror      bool          // Tells if the attached process should be considered in error
-	Events       []pipelineLog // Infos about what happened in the process
-	sync.RWMutex               // Can be used in goroutines so need to lock it
-	parent       *Diagnostic   // Parent of the Diagnostic. Nil if does not exist
+	Label        string        `json:"label"`    // Name of the diagnostic
+	identifier   uuid.UUID     `json:"-"`        // Unique identifier of the diagnostic
+	Date         time.Time     `json:"date"`     // Time the diagnostic was written
+	Inerror      bool          `json:"in-error"` // Tells if the attached process should be considered in error
+	Events       []pipelineLog `json:"logs"`     // Infos about what happened in the process
+	sync.RWMutex `json:"-"`    // Can be used in goroutines so need to lock it
+	parent       *Diagnostic   `json:"-"` // Parent of the Diagnostic. Nil if does not exist
 }
 
 // Infos about an event
 type DiagnosticEvent struct {
-	Importance  DEImp  // Importance of the event
-	Description string // Description of the event
-	Time        string // Time of the event happening
-	Name        string // Name to display in the log
+	Importance  DEImp  `json:"importance"`  // Importance of the event
+	Description string `json:"description"` // Description of the event
+	Time        string `json:"time"`        // Time of the event happening
+	Name        string `json:"name"`        // Name to display in the log
 }
 
 // NewDE is a helper function to add an event to the diagnostic
@@ -45,6 +46,36 @@ func (d *Diagnostic) NewDE(importance DEImp, description string) {
 	d.Events = append(d.Events, newEvt)
 }
 
+// Creates a new diag with a filter based on importance
+//
+// TODO : inefficient, remove cloning, and implement it on a Marshalling level
+func (d *Diagnostic) FilterBasedOnImportance(imp DEImp) *Diagnostic {
+	newDiag := &Diagnostic{
+		Label:      d.Label,
+		identifier: d.identifier,
+		Date:       d.Date,
+		Inerror:    d.Inerror,
+		parent:     d.parent,
+		Events:     []pipelineLog{},
+	}
+	for _, ev := range d.Events {
+		switch e := ev.(type) {
+		case *DiagnosticEvent:
+			{
+                if e.Importance >= imp {
+                    newDiag.Events = append(newDiag.Events, e)
+                }
+			}
+        case *Diagnostic:
+            {
+                newDiag.Events = append(newDiag.Events, e.FilterBasedOnImportance(imp))
+            }
+		}
+	}
+	return newDiag
+}
+
+// Adds a child diag to the current diagnostic
 func (d *Diagnostic) AddChild(diag *Diagnostic) {
 	d.Lock()
 	defer d.Unlock()
@@ -52,6 +83,7 @@ func (d *Diagnostic) AddChild(diag *Diagnostic) {
 	diag.parent = d
 }
 
+// Prints the events recursively
 func (d *Diagnostic) Log() {
 	for _, ev := range d.Events {
 		ev.Log()

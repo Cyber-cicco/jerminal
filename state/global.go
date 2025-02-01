@@ -46,7 +46,7 @@ func initializeApplicationState(conf *Config) error {
 	file, err := os.ReadFile(conf.AgentResourcePath)
 	if err != nil {
         fmt.Printf("err: %v\n", err)
-		return err
+		return errors.New("Process should have a ./resources/agents.json file in order to work. Check the docs to set it up")
 	}
 
 	if err = json.Unmarshal(file, &agents); err != nil {

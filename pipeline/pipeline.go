@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/Cyber-cicco/jerminal/state"
 	"github.com/Cyber-cicco/jerminal/utils"
@@ -22,11 +23,15 @@ type Pipeline struct {
 	events        []pipelineEvents        // components to be executed
 	Inerror       bool                    // Indicate if a fatal error has been encountered
 	state         *state.ApplicationState // L'état de l'application
-	Diagnostic    *Diagnostic             // Infos about the current process. It can change based on what stage is getting executed. 
+	StartTime     time.Time               // Début de la pipeline
+
+	Diagnostic  *Diagnostic // Infos about the current process. It can change based on what stage is getting executed.
+	ElapsedTime int64       // Time it took to run the Pipeline
 
 	// Copy of the config that should be initialized at start of
 	// the pipeline so it keeps it's state even if there is a change during the execution
 	Config *state.Config
+	Report *Report // Config that allows to choose a way of logging the results into a file
 }
 
 // Provides the agent for the pipeline
@@ -37,6 +42,7 @@ type AgentProvider func(p *Pipeline) *state.Agent
 // MUST BE CALLED IN A GOROUTINE BY THE SERVER
 func (p *Pipeline) ExecutePipeline() error {
 	var lastErr error
+	p.StartTime = time.Now()
 
 	diag := NewDiag(fmt.Sprintf("%s", p.Name))
 	diag.NewDE(INFO, "starting main loop")
@@ -48,16 +54,19 @@ func (p *Pipeline) ExecutePipeline() error {
 	defer func() {
 		err := p.agent.CleanUp()
 		if err != nil {
-			diag.NewDE(CRITICAL, fmt.Sprintf("agent could not terminate properly because of error %v", err))
+			diag.NewDE(CRITICAL, fmt.Sprintf("Agent could not terminate properly because of error %v", err))
 		}
 		lastErr = err
+		p.ElapsedTime = time.Now().UnixMilli() - p.StartTime.UnixMilli()
+		diag.NewDE(INFO, fmt.Sprintf("Pipeline finished in %d ms", p.ElapsedTime))
+		p.Report.Report(p)
 	}()
 
 	path, err := p.agent.Initialize()
 
 	if err != nil {
 		fmt.Printf("err: %v\n", err)
-		diag.NewDE(CRITICAL, fmt.Sprintf("agent could not initialize because of error %v", err))
+		diag.NewDE(CRITICAL, fmt.Sprintf("Agent could not initialize because of error %v", err))
 		return err
 	}
 
@@ -97,6 +106,22 @@ func (p *Pipeline) ExecutePipeline() error {
 	return lastErr
 }
 
+func (p *Pipeline) ReportJson() {
+	p.Report.Types = append(p.Report.Types, JSON)
+}
+
+func (p *Pipeline) ReportHTML() {
+	p.Report.Types = append(p.Report.Types, HTML)
+}
+
+func (p *Pipeline) ReportSQLITE() {
+	p.Report.Types = append(p.Report.Types, SQLITE)
+}
+
+func (p *Pipeline) SetReportLogLevel(imp DEImp) {
+    p.Report.LogLevel = imp
+}
+
 // SetPipeline initializes a new pipeline with the specified agent and components.
 //
 // It gets the current state of the app and gives back the Pipeline
@@ -121,6 +146,11 @@ func setPipelineWithState(name string, agent AgentProvider, state *state.Applica
 		Diagnostic:    &Diagnostic{},
 		TimeRan:       0,
 		state:         state,
+		Report: &Report{
+			Types:     []ReportType{},
+			Directory: "./reports",
+			LogLevel:  INFO,
+		},
 	}
 	p.agent = agent(&p)
 	return &p
@@ -143,4 +173,8 @@ func DefaultAgent() AgentProvider {
 	return func(p *Pipeline) *state.Agent {
 		return p.state.DefaultAgent()
 	}
+}
+
+func (p *Pipeline) GetId() string {
+	return p.id.String()
 }
