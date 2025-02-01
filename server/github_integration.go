@@ -2,6 +2,10 @@ package server
 
 import (
     "time"
+	"strings"
+	"crypto/hmac"
+	"crypto/sha1"
+	"encoding/hex"
 )
 
 type WebhookPayload struct {
@@ -173,4 +177,34 @@ type Author struct {
     Name     string `json:"name"`
     Email    string `json:"email"`
     Username string `json:"username"`
+}
+
+
+
+// Ensures that the request sending the webhook has the right signature
+func verifyGithubSignature(secret, signature string, body []byte) bool {
+	// The signature is in the format "sha1=hash"
+	const prefix = "sha1="
+
+    if !strings.HasPrefix(signature, prefix) {
+        return false
+    }
+
+	if len(signature) != len(prefix)+sha1.Size*2 || !hmac.Equal([]byte(signature[:len(prefix)]), []byte(prefix)) {
+		return false
+	}
+
+	// Compute the HMAC
+	mac := hmac.New(sha1.New, []byte(secret))
+	mac.Write(body)
+	expectedMAC := mac.Sum(nil)
+
+	// Decode the signature
+	actualMAC, err := hex.DecodeString(signature[len(prefix):])
+	if err != nil {
+		return false
+	}
+
+	// Compare the MACs
+	return hmac.Equal(actualMAC, expectedMAC)
 }

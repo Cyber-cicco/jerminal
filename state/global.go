@@ -70,20 +70,12 @@ func initializeApplicationState(conf *Config) error {
 			Busy:       false,
 			State:      state,
 		}
-		defaultAgent.BusySig = sync.NewCond(&defaultAgent.Mutex)
-		agentMap[agent.Identifier] = newAgent
+		newAgent.BusySig = sync.NewCond(&newAgent.Mutex)
+		agentMap[newAgent.Identifier] = newAgent
 	}
 
 	state.agents = agentMap
 
-    println("caca")
-    println("caca")
-    println("caca")
-    println("caca")
-    println("caca")
-    println("caca")
-    println("caca")
-    println("caca")
 	return nil
 }
 
@@ -100,8 +92,8 @@ func GetState() (*ApplicationState, error) {
 	once.Do(func() {
 		fmt.Printf("\"in once\": %v\n", "in once")
 		conf := &Config{
-			JerminalResourcePath: "../resources/jerminal.json",
-			AgentResourcePath:    "../resources/agents.json",
+			JerminalResourcePath: "./resources/jerminal.json",
+			AgentResourcePath:    "./resources/agents.json",
 		}
         err = initializeApplicationState(conf)
 	})
@@ -129,6 +121,7 @@ func GetStateCustomConf(conf *Config) *ApplicationState {
 func (a *Agent) Initialize() (string, error) {
 	// Wait until the agent is no longer busy
 	a.Lock()
+    fmt.Printf("a.BusySig at beginning of pipeline: %v\n", a.BusySig)
 	for a.Busy {
 		a.BusySig.Wait()
 	}
@@ -157,6 +150,7 @@ func (a *Agent) CleanUp() error {
 		return err
 	}
 	a.Busy = false
+    fmt.Printf("a.BusySig at end of pipeline: %v\n", a.BusySig)
 	a.BusySig.Signal()
 
 	return nil

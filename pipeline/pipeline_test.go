@@ -13,7 +13,7 @@ func _test_getPipeline(agentId string) *Pipeline {
 		Agent: &state.Agent{
 			Identifier: agentId,
 		},
-		name:          "test",
+		Name:          "test",
 		mainDirectory: "./test",
 		directory:     "./test",
 		id:            uuid.New(),

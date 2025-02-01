@@ -14,7 +14,7 @@ import (
 // It uses an Agent to manage execution and a directory for workspace.
 type Pipeline struct {
 	Agent         *state.Agent           // Agent executing the Pipeline
-	name          string                 // human readable name of the pipeline
+	Name          string                 // human readable name of the pipeline
 	mainDirectory string                 // Base directory of the pipeline
 	directory     string                 // Working directory for the pipeline.
 	id            uuid.UUID              // UUID
@@ -38,13 +38,14 @@ type AgentProvider func(p *Pipeline) *state.Agent
 func (p *Pipeline) ExecutePipeline() error {
 	var lastErr error
 
-	diag := NewDiag(fmt.Sprintf("%s#%s", p.name, p.id.String()))
+	diag := NewDiag(fmt.Sprintf("%s#%s", p.Name, p.id.String()))
 	diag.NewDE(INFO, "starting main loop")
 
 	p.Diagnostic = diag
     p.Config = p.State.CloneConfig()
 
 
+    // Clean up work from the agent at end of pipeline
 	defer func() {
 		err := p.Agent.CleanUp()
 		if err != nil {
@@ -61,6 +62,7 @@ func (p *Pipeline) ExecutePipeline() error {
 		return err
 	}
 
+    // Sets up the infos about the directory it will work in
 	p.mainDirectory = path
 	p.directory = p.mainDirectory
 
@@ -68,6 +70,7 @@ func (p *Pipeline) ExecutePipeline() error {
 
     _, err = os.Stat(pipePath)
 
+    // Create the directory for the pipeline if it does not yet exist
     if err != nil {
         err := os.MkdirAll(pipePath, os.ModePerm)
         if err != nil {
@@ -80,6 +83,7 @@ func (p *Pipeline) ExecutePipeline() error {
         }
     }
 
+    //Executes all the things from the pipeline
 	for _, comp := range p.events {
 		err := comp.ExecuteInPipeline(p)
 		if err != nil {
@@ -109,7 +113,7 @@ func SetPipeline(name string, agent AgentProvider, events ...pipelineEvents) (*P
 // Only in testing should it be used by something else than SetPipeline
 func setPipelineWithState(name string, agent AgentProvider, state *state.ApplicationState, events ...pipelineEvents) *Pipeline {
 	p := Pipeline{
-		name:          name,
+		Name:          name,
 		id:            uuid.New(),
 		mainDirectory: "",
 		directory:     "",

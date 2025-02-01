@@ -28,7 +28,7 @@ func Stages(name string, _stages ...*stage) *stages {
 // ExecuteInPipeline executes all the stages within the pipeline.
 func (s *stages) ExecuteInPipeline(p *Pipeline) error {
 
-	diag := NewDiag(fmt.Sprintf("%s#%s", p.name, s.name))
+	diag := NewDiag(fmt.Sprintf("%s#%s", p.Name, s.name))
 	s.diagnostic = diag
 	beginning := time.Now().UnixMilli()
 	diag.NewDE(INFO, fmt.Sprintf("stage %s started", s.name))
