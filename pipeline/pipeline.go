@@ -38,7 +38,7 @@ type AgentProvider func(p *Pipeline) *state.Agent
 func (p *Pipeline) ExecutePipeline() error {
 	var lastErr error
 
-	diag := NewDiag(fmt.Sprintf("%s#%s", p.Name, p.id.String()))
+	diag := NewDiag(fmt.Sprintf("%s", p.Name))
 	diag.NewDE(INFO, "starting main loop")
 
 	p.Diagnostic = diag

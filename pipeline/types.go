@@ -20,6 +20,11 @@ type pipelineEvents interface {
 	GetName() string
 }
 
+// Can be Diagnostic or DiagEvent
+type pipelineLog interface {
+    Log()
+}
+
 // executable represents an entity that can be executed within a pipeline.
 //
 // Implemented by Exec, executor

@@ -9,15 +9,16 @@ import (
 // Stages represents a collection of pipeline stages.
 // Each stage has an execution order and can be configured to stop if an error occurs.
 type stages struct {
-	name              string      // The identifier of the stages
-	stages            []*stage    // List of stages in the pipeline.
-	shouldStopIfError bool        // Determines whether execution should stop on error.
-	parallel          bool        // Determines wether execution of stages should be put in goroutines
+	name              string   // The identifier of the stages
+	stages            []*stage // List of stages in the pipeline.
+	shouldStopIfError bool     // Determines whether execution should stop on error.
+	parallel          bool     // Determines wether execution of stages should be put in goroutines
 }
 
 // Stages initializes a new set of stages with the provided configuration.
 func Stages(name string, _stages ...*stage) *stages {
 	return &stages{
+		name:              name,
 		stages:            _stages,
 		shouldStopIfError: true,
 		parallel:          false,
@@ -27,21 +28,21 @@ func Stages(name string, _stages ...*stage) *stages {
 // ExecuteInPipeline executes all the stages within the pipeline.
 func (s *stages) ExecuteInPipeline(p *Pipeline) error {
 
-	diag := NewDiag(fmt.Sprintf("%s#%s", p.Name, s.name))
+	diag := NewDiag(fmt.Sprintf("%s | stages %s", p.Name, s.name))
 	p.Diagnostic.AddChild(diag)
-    p.Diagnostic = diag
+	p.Diagnostic = diag
 	beginning := time.Now().UnixMilli()
-	diag.NewDE(INFO, fmt.Sprintf("stage %s started", s.name))
+	diag.NewDE(INFO, fmt.Sprintf("stages %s started", s.name))
 
 	defer func() {
 		end := time.Now().UnixMilli()
 		elapsedTime := end - beginning
 		diag.NewDE(INFO, fmt.Sprintf("stages %s ended successfully. Took %d ms", s.name, elapsedTime))
-        p.Diagnostic = p.Diagnostic.parent
+		p.Diagnostic = p.Diagnostic.parent
 	}()
 
 	// Parallel execution of pipelines
-    // Parallel execution seem to pose a problem with diags in stages
+	// Parallel execution seem to pose a problem with diags in stages
 	if s.parallel {
 		diag.NewDE(DEBUG, "starting parallel tasks")
 		var wg sync.WaitGroup
@@ -71,7 +72,7 @@ func (s *stages) ExecuteInPipeline(p *Pipeline) error {
 				return err
 			}
 		}
-        return nil
+		return nil
 
 	}
 
@@ -101,4 +102,3 @@ func (s *stages) Parallel() *stages {
 func (s *stages) GetShouldStopIfError() bool {
 	return s.shouldStopIfError
 }
-

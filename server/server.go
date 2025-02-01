@@ -81,7 +81,9 @@ func (s *Server) BeginPipeline(id string) {
     }
     clone := *pipeline
     err := clone.ExecutePipeline()
-    fmt.Printf("err: %v\n", err)
+    if err != nil {
+        fmt.Printf("err: %v\n", err)
+    }
 }
 
 // Returns the name of the pipeline to start
