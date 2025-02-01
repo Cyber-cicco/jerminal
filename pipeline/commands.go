@@ -2,21 +2,20 @@ package pipeline
 
 import (
 	"errors"
-	"log"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
-
 )
 
 // CD restricts navigation to prevent access to parent directories or absolute paths.
 //
 // It gives back two functions : one to set the context of the stage to the specified
-//diretory, and one to execute later that gets the puts the current directory back to the original
+// diretory, and one to execute later that gets the puts the current directory back to the original
 //
 // It should be used with the ExecDefer function
-func CD(dir string) executor {
-    cd := func(p *Pipeline) error {
+func CD(dir string) *executor {
+	cd := func(p *Pipeline) error {
 		// Reject absolute paths
 		if filepath.IsAbs(dir) {
 			return errors.New("absolute paths are not allowed")
@@ -41,25 +40,25 @@ func CD(dir string) executor {
 		return nil
 	}
 
-    defered := func(p *Pipeline) error {
-        p.directory = p.mainDirectory
-        return nil
-    }
+	defered := func(p *Pipeline) error {
+		p.directory = p.mainDirectory
+		return nil
+	}
 
-    return executor{
-    	ex:           Exec(cd),
-    	recoveryFunc: nil,
-    	deferedFunc:  Exec(defered),
-    }
+	return &executor{
+		ex:           Exec(cd),
+		recoveryFunc: nil,
+		deferedFunc:  Exec(defered),
+	}
 }
 
 // SH Executes a command in the directory of the current agent
 func SH(name string, args ...string) executable {
-    return Exec(func(p *Pipeline) error {
-        cmd := exec.Command(name, args...)
-        cmd.Dir = p.directory
-        out, err := cmd.Output()
-        log.Println(out)
-        return err
-    })
+	return Exec(func(p *Pipeline) error {
+		cmd := exec.Command(name, args...)
+		cmd.Dir = p.directory
+		out, err := cmd.CombinedOutput()
+		fmt.Println(string(out))
+		return err
+	})
 }
