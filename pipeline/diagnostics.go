@@ -15,21 +15,21 @@ var IMPORTANCE_STR = [5]string{"DEBUG", "INFO", "WARN", "ERROR", "CRITICAL"}
 
 // Informations about an element of the pipeline
 type Diagnostic struct {
+	Start        JSONTime      `json:"date" time_format:"2006-01-02 15:04:05"` // Time the diagnostic was written
+	Events       []pipelineLog `json:"logs"`                                   // Infos about what happened in the process
 	Label        string        `json:"label"`                                  // Name of the diagnostic
 	identifier   uuid.UUID     `json:"-"`                                      // Unique identifier of the diagnostic
-	Start         JSONTime      `json:"date" time_format:"2006-01-02 15:04:05"` // Time the diagnostic was written
-	Inerror      bool          `json:"in-error"`                               // Tells if the attached process should be considered in error
-	Events       []pipelineLog `json:"logs"`                                   // Infos about what happened in the process
-	sync.RWMutex `json:"-"`    // Can be used in goroutines so need to lock it
 	parent       *Diagnostic   `json:"-"` // Parent of the Diagnostic. Nil if does not exist
+	sync.RWMutex `json:"-"`    // Can be used in goroutines so need to lock it
+	Inerror      bool          `json:"in-error"`                               // Tells if the attached process should be considered in error
 }
 
 // Infos about an event
 type DiagnosticEvent struct {
-	Importance  DEImp  `json:"importance"`  // Importance of the event
 	Description string `json:"description"` // Description of the event
 	Time        string `json:"time"`        // Time of the event happening
 	Name        string `json:"name"`        // Name to display in the log
+	Importance  DEImp  `json:"importance"`  // Importance of the event
 }
 
 // NewDE is a helper function to add an event to the diagnostic
@@ -53,7 +53,7 @@ func (d *Diagnostic) FilterBasedOnImportance(imp DEImp) *Diagnostic {
 	newDiag := &Diagnostic{
 		Label:      d.Label,
 		identifier: d.identifier,
-		Start:       d.Start,
+		Start:      d.Start,
 		Inerror:    d.Inerror,
 		parent:     d.parent,
 		Events:     []pipelineLog{},
@@ -100,7 +100,7 @@ func NewDiag(name string) *Diagnostic {
 	return &Diagnostic{
 		Label:      name,
 		identifier: uuid.New(),
-		Start:       JSONTime(time.Now()),
+		Start:      JSONTime(time.Now()),
 		Inerror:    false,
 		Events:     []pipelineLog{},
 	}

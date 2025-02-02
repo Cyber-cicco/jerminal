@@ -6,8 +6,11 @@ type post struct {
 	always  Always
 }
 
+// Invoked by post in case of success
 type Success func(p *Pipeline) error
+// Invoked by post in case of failure
 type Failure func(p *Pipeline) error
+// Always invoked by post
 type Always func(p *Pipeline) error
 
 func (p *post) ExecuteInPipeline(pipeline *Pipeline) error {
@@ -35,6 +38,9 @@ func (p *post) GetName() string {
     return "Post pipeline job"
 }
 
+// Functions to execute after executing stages.
+// Technically, you could use Post anywhere in the
+// pipeline, but it is not recommended
 func Post(success Success, failure Failure, always Always) *post {
     return &post{
     	success: success,

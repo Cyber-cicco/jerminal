@@ -44,7 +44,7 @@ func (imp *DEImp) UnmarshalJSON(data []byte) error {
 // pipelineEvents represents a generic event of the pipeline.
 // Each event must be able to execute within a pipeline and provide metadata.
 //
-// Implemented by : stages, onceRunner
+// Implemented by : Stages, OnceRunner, Post
 type pipelineEvents interface {
 	ExecuteInPipeline(p *Pipeline) error // Executes the component within the pipeline.
 	GetShouldStopIfError() bool          // Indicates if the pipeline should stop on error.

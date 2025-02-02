@@ -24,12 +24,8 @@ type Pipeline struct {
 	Inerror       bool                    // Indicate if a fatal error has been encountered
 	state         *state.ApplicationState // L'état de l'application
 	StartTime     time.Time               // Début de la pipeline
-
-    // TODO : There is a lot of indirections, maybe use an array and a custom walker that keeps track of indexes to walk the diags
-    // Might be a bit of a pain to Marshall and unmarshall though
-    // Will probably do it just for fun
-	Diagnostic  *Diagnostic // Infos about the current process. It can change based on what stage is getting executed.
-	ElapsedTime int64       // Time it took to run the Pipeline
+	Diagnostic    *Diagnostic             // Infos about the current process. It can change based on what stage is getting executed.
+	ElapsedTime   int64                   // Time it took to run the Pipeline
 
 	// Copy of the config that should be initialized at start of
 	// the pipeline so it keeps it's state even if there is a change during the execution
@@ -109,6 +105,9 @@ func (p *Pipeline) ExecutePipeline() error {
 	return lastErr
 }
 
+// ReportJson tells the pipeline to create a JSON file of
+// Diagnostic after the execution of the pipeline, wether
+// it fails or not
 func (p *Pipeline) ReportJson() {
 	p.Report.Types = append(p.Report.Types, JSON)
 }
@@ -122,7 +121,7 @@ func (p *Pipeline) ReportSQLITE() {
 }
 
 func (p *Pipeline) SetReportLogLevel(imp DEImp) {
-    p.Report.LogLevel = imp
+	p.Report.LogLevel = imp
 }
 
 // SetPipeline initializes a new pipeline with the specified agent and components.
@@ -159,7 +158,7 @@ func setPipelineWithState(name string, agent AgentProvider, state *state.Applica
 	return &p
 }
 func (p *Pipeline) ResetDiag() {
-    p.Diagnostic = p.Diagnostic.parent
+	p.Diagnostic = p.Diagnostic.parent
 }
 
 // Agent retrieves an agent with the specified identifier.
@@ -169,12 +168,15 @@ func Agent(id string) AgentProvider {
 	}
 }
 
+// Returns the first agent available. If none is, returns
+// the default agent
 func AnyAgent() AgentProvider {
 	return func(p *Pipeline) *state.Agent {
 		return p.state.GetAnyAgent()
 	}
 }
 
+// Returns the default agent even if busy
 func DefaultAgent() AgentProvider {
 	return func(p *Pipeline) *state.Agent {
 		return p.state.DefaultAgent()

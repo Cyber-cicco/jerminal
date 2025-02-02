@@ -15,7 +15,8 @@ type stages struct {
 	parallel          bool     // Determines wether execution of stages should be put in goroutines
 }
 
-// Stages initializes a new set of stages with the provided configuration.
+// Stages initializes a new set of stages to execute in sequence by default.
+// Can be made parallel with the Parallel() function
 func Stages(name string, _stages ...*stage) *stages {
 	return &stages{
 		name:              name,

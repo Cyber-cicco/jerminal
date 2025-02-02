@@ -12,8 +12,6 @@ import (
 //
 // It gives back two functions : one to set the context of the stage to the specified
 // diretory, and one to execute later that puts the current directory back to the original
-//
-// It should be used with the ExecDefer function
 func CD(dir string) *executor {
 	cd := func(p *Pipeline) error {
 		// Reject absolute paths

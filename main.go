@@ -9,19 +9,19 @@ import (
 
 func main() {
 	i := 0
-    standardPost := Post(
-			Success(func(p *Pipeline) error {
-				p.Diagnostic.NewDE(INFO, "Job was successfull")
-				return nil
-			}),
-			Failure(func(p *Pipeline) error {
-				p.Diagnostic.NewDE(INFO, "Job failed")
-				return nil
-			}),
-			Always(func(p *Pipeline) error {
-				return nil
-			}),
-		)
+	standardPost := Post(
+		Success(func(p *Pipeline) error {
+			p.Diagnostic.NewDE(INFO, "Job was successfull")
+			return nil
+		}),
+		Failure(func(p *Pipeline) error {
+			p.Diagnostic.NewDE(INFO, "Job failed")
+			return nil
+		}),
+		Always(func(p *Pipeline) error {
+			return nil
+		}),
+	)
 	p1, err := SetPipeline("test1",
 		AnyAgent(),
 		Stages("test_stages",
@@ -34,13 +34,13 @@ func main() {
 						i++
 						return errors.New("test error")
 					}
-                    return nil
+					return nil
 				}),
 			).Retry(2, 1),
 		),
-        standardPost,
+		standardPost,
 	)
-    p1.ReportJson()
+	p1.ReportJson()
 	p2, err := SetPipeline("test2",
 		Agent("agent_2"),
 		RunOnce(
@@ -61,7 +61,7 @@ func main() {
 				SH("cp", "exe", "/home/hijokaidan/PC/jerminal/exe"),
 			),
 		),
-        standardPost,
+		standardPost,
 	)
 	p3, err := SetPipeline("test3", // 1 diag event for the start
 		AnyAgent(),
@@ -70,15 +70,15 @@ func main() {
 				SH("echo", "bonjour"), // 1 diag event
 				SH("echo", "bonjour"), // 1 diag event
 				SH("echo", "bonjour"), // 1 diag event
-			),// 1 at the end of stages_1
+			), // 1 at the end of stages_1
 			Stage("stage_2", // 1 diag for the stage
 				SH("echo", "bonjour"), // 1 diag event
 				SH("echo", "bonjour"), // 1 diag event
 				SH("echo", "bonjour"), // 1 diag event
-			),// 1 at the end of stages_2
+			), // 1 at the end of stages_2
 		), // 1 diag at the end
 	)
-    p3.ReportJson()
+	p3.ReportJson()
 	if err != nil {
 		panic(err)
 	}
