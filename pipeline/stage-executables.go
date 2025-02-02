@@ -40,17 +40,15 @@ func Stage(name string, executables ...executable) *stage {
 	executors := make([]*executor, len(executables))
 	for i, ex := range executables {
 		switch ex.(type) {
+
 		case *executor:
-			{
-				n, _ := ex.(*executor)
-				executors[i] = n
-			}
+			n, _ := ex.(*executor)
+			executors[i] = n
+
 		case Exec:
-			{
-				executors[i] = &executor{
-					ex:           ex,
-					recoveryFunc: nil,
-				}
+			executors[i] = &executor{
+				ex:           ex,
+				recoveryFunc: nil,
 			}
 		}
 	}

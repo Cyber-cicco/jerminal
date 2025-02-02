@@ -1,0 +1,8 @@
+{
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "pipeline-cancelation",
+    "params": {
+        "name": "build-gocap"
+    }
+}

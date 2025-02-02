@@ -45,7 +45,7 @@ func initializeApplicationState(conf *Config) error {
 	// Getting the agents from the config file
 	file, err := os.ReadFile(conf.AgentResourcePath)
 	if err != nil {
-        fmt.Printf("err: %v\n", err)
+		fmt.Printf("err: %v\n", err)
 		return errors.New("Process should have a ./resources/agents.json file in order to work. Check the docs to set it up")
 	}
 
@@ -88,17 +88,17 @@ func initializeApplicationState(conf *Config) error {
 //
 // Should be used by default
 func GetState() (*ApplicationState, error) {
-    var err error
+	var err error
 	once.Do(func() {
 		conf := &Config{
 			JerminalResourcePath: "./resources/jerminal.json",
 			AgentResourcePath:    "./resources/agents.json",
 		}
-        err = initializeApplicationState(conf)
+		err = initializeApplicationState(conf)
 	})
-    if err != nil {
-        return nil, err
-    }
+	if err != nil {
+		return nil, err
+	}
 	return state, state.UpdateConfig()
 }
 
@@ -156,8 +156,8 @@ func (a *Agent) CleanUp() error {
 //
 // Creates it does not exist yet
 func (s *ApplicationState) GetAgent(id string) *Agent {
-    s.Lock()
-    defer s.Unlock()
+	s.Lock()
+	defer s.Unlock()
 
 	ag, ok := s.agents[id]
 	if !ok {
@@ -178,34 +178,33 @@ func (s *ApplicationState) GetAgent(id string) *Agent {
 // If every agent is busy, gets the default agent
 func (s *ApplicationState) GetAnyAgent() *Agent {
 
-    s.Lock()
-    defer s.Unlock()
+	s.Lock()
+	defer s.Unlock()
 
 	for _, agent := range s.agents {
-        agent.Lock()
-        available := !agent.Busy
-        agent.Unlock()
-        if available {
-            return agent
-        }
+		agent.Lock()
+		available := !agent.Busy
+		agent.Unlock()
+		if available {
+			return agent
+		}
 	}
 	return s.agents[DEFAULT_AGENT]
 }
 
 // Gets the default agent back
 func (s *ApplicationState) DefaultAgent() *Agent {
-    s.Lock()
-    defer s.Unlock()
-    return s.agents[DEFAULT_AGENT]
+	s.Lock()
+	defer s.Unlock()
+	return s.agents[DEFAULT_AGENT]
 }
-
 
 // Allows for retreival of configuration at an instant
 // allowing for the pipeline to stay coherent even if a change
 // to the config is made during it's runtime
 func (s *ApplicationState) CloneConfig() *Config {
-    s.Lock()
-    defer s.Unlock()
+	s.Lock()
+	defer s.Unlock()
 	s.Config.Lock()
 	defer s.Config.Unlock()
 	conf := Config{

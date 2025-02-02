@@ -25,38 +25,36 @@ type Report struct {
 func (r *Report) Report(p *Pipeline) error {
 
 	for _, t := range r.Types {
-		switch t {
-		case JSON:
-			{
-				dirPath := filepath.Join(r.Directory, p.Name)
-				_, err := os.Stat(dirPath)
-				if err != nil {
-					err := os.MkdirAll(dirPath, os.ModePerm)
 
-					if err != nil {
-						fmt.Printf("err: %v\n", err)
-						return err
-					}
-				}
-				fileName := fmt.Sprintf("%s-%s.json", p.StartTime.Format(FILE_DATE_TIME_LAYOUT), p.GetId())
-				filePath := filepath.Join(dirPath, fileName)
-				fileContent, err := json.MarshalIndent(
-					p.Diagnostic.FilterBasedOnImportance(r.LogLevel),
-					"",
-					"  ",
-				)
+		switch t {
+
+		case JSON:
+			dirPath := filepath.Join(r.Directory, p.Name)
+			_, err := os.Stat(dirPath)
+			if err != nil {
+				err := os.MkdirAll(dirPath, os.ModePerm)
+
 				if err != nil {
 					fmt.Printf("err: %v\n", err)
 					return err
 				}
-
-				err = os.WriteFile(filePath, fileContent, 0644)
+			}
+			fileName := fmt.Sprintf("%s-%s.json", p.StartTime.Format(FILE_DATE_TIME_LAYOUT), p.GetId())
+			filePath := filepath.Join(dirPath, fileName)
+			fileContent, err := json.MarshalIndent(
+				p.Diagnostic.FilterBasedOnImportance(r.LogLevel),
+				"",
+				"  ",
+			)
+			if err != nil {
+				fmt.Printf("err: %v\n", err)
 				return err
 			}
+
+			err = os.WriteFile(filePath, fileContent, 0644)
+			return err
 		default:
-			{
-				return fmt.Errorf("Not yet supported")
-			}
+			return fmt.Errorf("Not yet supported")
 
 		}
 	}

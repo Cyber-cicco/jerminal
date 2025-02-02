@@ -19,9 +19,9 @@ type Diagnostic struct {
 	Events       []pipelineLog `json:"logs"`                                   // Infos about what happened in the process
 	Label        string        `json:"label"`                                  // Name of the diagnostic
 	identifier   uuid.UUID     `json:"-"`                                      // Unique identifier of the diagnostic
-	parent       *Diagnostic   `json:"-"` // Parent of the Diagnostic. Nil if does not exist
+	parent       *Diagnostic   `json:"-"`                                      // Parent of the Diagnostic. Nil if does not exist
 	sync.RWMutex `json:"-"`    // Can be used in goroutines so need to lock it
-	Inerror      bool          `json:"in-error"`                               // Tells if the attached process should be considered in error
+	Inerror      bool          `json:"in-error"` // Tells if the attached process should be considered in error
 }
 
 // Infos about an event
@@ -60,16 +60,15 @@ func (d *Diagnostic) FilterBasedOnImportance(imp DEImp) *Diagnostic {
 	}
 	for _, ev := range d.Events {
 		switch e := ev.(type) {
+
 		case *DiagnosticEvent:
-			{
-				if e.Importance >= imp {
-					newDiag.Events = append(newDiag.Events, e)
-				}
+			if e.Importance >= imp {
+				newDiag.Events = append(newDiag.Events, e)
 			}
+
 		case *Diagnostic:
-			{
-				newDiag.Events = append(newDiag.Events, e.FilterBasedOnImportance(imp))
-			}
+			newDiag.Events = append(newDiag.Events, e.FilterBasedOnImportance(imp))
+
 		}
 	}
 	return newDiag

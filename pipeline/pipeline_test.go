@@ -1,6 +1,7 @@
 package pipeline
 
 import (
+	"context"
 	"errors"
 	"testing"
 
@@ -131,7 +132,7 @@ func TestPipelineExecution1(t *testing.T) {
 		t.Fatalf("Expected no error, got %v", err)
 	}
 
-	err = p.ExecutePipeline()
+	err = p.ExecutePipeline(context.Background())
 
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
@@ -243,7 +244,7 @@ func TestPipelineExecution2(t *testing.T) {
 		t.Fatalf("Expected no error, got %v", err)
 	}
 
-	err = p.ExecutePipeline()
+	err = p.ExecutePipeline(context.Background())
 
 	if err != nil {
 		t.Fatalf("Expected no error but got %v", err)

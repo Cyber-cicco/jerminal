@@ -1,6 +1,7 @@
 package pipeline
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"testing"
@@ -49,7 +50,7 @@ func __test__getPipelineDiagnostics(t *testing.T, f func() (*Pipeline, error)) *
 		t.Fatalf("Expected no error got %v", err)
 	}
 
-	err = p1.ExecutePipeline()
+	err = p1.ExecutePipeline(context.Background())
 
 	if err != nil {
 		t.Fatalf("Expected no error got %v", err)

@@ -1,6 +1,7 @@
 package pipeline
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -39,7 +40,7 @@ type AgentProvider func(p *Pipeline) *state.Agent
 // Launches the events of the pipeline
 //
 // MUST BE CALLED IN A GOROUTINE BY THE SERVER
-func (p *Pipeline) ExecutePipeline() error {
+func (p *Pipeline) ExecutePipeline(ctx context.Context) error {
 	var lastErr error
 	p.StartTime = time.Now()
 
