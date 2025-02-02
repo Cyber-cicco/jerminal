@@ -1,6 +1,7 @@
 package pipeline
 
 import (
+	"context"
 	"errors"
 	"path/filepath"
 
@@ -37,39 +38,45 @@ func RunOnce(executables ...executable) *onceRunner {
 }
 
 // ExecuteInPipeline runs all executables in a OnceRunner.
-func (o *onceRunner) ExecuteInPipeline(p *Pipeline) error {
+func (o *onceRunner) ExecuteInPipeline(p *Pipeline, ctx context.Context) error {
 
-    pipelinePath := filepath.Join(p.state.PipelineDir, p.id.String())
-    empty, err := utils.IsDirEmpty(p.directory)
+	pipelinePath := filepath.Join(p.state.PipelineDir, p.id.String())
+	empty, err := utils.IsDirEmpty(p.directory)
 
-    if err != nil {
-        return err
-    }
+	if err != nil {
+		return err
+	}
 
-    if !empty {
-        return errors.New("Agent directory should be empty when executing a task that runs once per pipeline")
-    }
+	if !empty {
+		return errors.New("Agent directory should be empty when executing a task that runs once per pipeline")
+	}
 
-    if p.TimeRan > 0 {
-        p.TimeRan++
-        return nil
-    }
+	if p.TimeRan > 0 {
+		p.TimeRan++
+		return nil
+	}
 
-    p.Diagnostic.NewDE(INFO, "Executing pipeline setup for subsequent runs")
+	p.Diagnostic.NewDE(INFO, "Executing pipeline setup for subsequent runs")
 
-    for _, ex := range o.executables {
-        err := ex.Execute(p)
-        if err != nil {
-            return err
-        }
-    }
-    
-    err = utils.CopyDir(p.directory, pipelinePath)
-    
-    if err != nil {
-        return err
-    }
+	for _, ex := range o.executables {
+		select {
+		case <-ctx.Done():
+            p.Diagnostic.NewDE(WARN, "Job got canceled before finishing")
+        default:
+			err := ex.Execute(p)
+			if err != nil {
+				return err
+			}
 
-    p.TimeRan++
+		}
+	}
+
+	err = utils.CopyDir(p.directory, pipelinePath)
+
+	if err != nil {
+		return err
+	}
+
+	p.TimeRan++
 	return nil
 }

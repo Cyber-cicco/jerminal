@@ -1,6 +1,7 @@
 package pipeline
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 )
@@ -46,7 +47,7 @@ func (imp *DEImp) UnmarshalJSON(data []byte) error {
 //
 // Implemented by : stages, OnceRunner, Post
 type pipelineEvents interface {
-	ExecuteInPipeline(p *Pipeline) error // Executes the component within the pipeline.
+	ExecuteInPipeline(p *Pipeline, ctx context.Context) error // Executes the component within the pipeline.
 	GetShouldStopIfError() bool          // Indicates if the pipeline should stop on error.
 	GetName() string
 }

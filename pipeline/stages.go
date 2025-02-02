@@ -1,6 +1,7 @@
 package pipeline
 
 import (
+	"context"
 	"fmt"
 	"sync"
 	"time"
@@ -27,7 +28,7 @@ func Stages(name string, _stages ...*stage) *stages {
 }
 
 // ExecuteInPipeline executes all the stages within the pipeline.
-func (s *stages) ExecuteInPipeline(p *Pipeline) error {
+func (s *stages) ExecuteInPipeline(p *Pipeline, ctx context.Context) error {
 
 	diag := NewDiag(fmt.Sprintf("%s | stages %s", p.Name, s.name))
 	p.Diagnostic.AddChild(diag)
@@ -78,12 +79,18 @@ func (s *stages) ExecuteInPipeline(p *Pipeline) error {
 	}
 
 	for _, stage := range s.stages {
-		err := stage.ExecuteStage(p)
-		if err != nil {
-			if stage.shouldStopIfError {
-				return err
+		select {
+		case <-ctx.Done():
+			diag.NewDE(WARN, fmt.Sprintf("Stages got canceled before finishing"))
+			return ctx.Err()
+		default:
+			err := stage.ExecuteStage(p)
+			if err != nil {
+				if stage.shouldStopIfError {
+					return err
+				}
+				diag.NewDE(WARN, fmt.Sprintf("got non blocking error in stage %s : %v", s.name, err))
 			}
-			diag.NewDE(WARN, fmt.Sprintf("got non blocking error in stage %s : %v", s.name, err))
 		}
 	}
 	return nil

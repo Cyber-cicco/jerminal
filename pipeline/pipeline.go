@@ -92,13 +92,19 @@ func (p *Pipeline) ExecutePipeline(ctx context.Context) error {
 	}
 
 	//Executes all the things from the pipeline
-	for _, comp := range p.events {
-		err := comp.ExecuteInPipeline(p)
-		if err != nil {
-			if comp.GetShouldStopIfError() {
-				p.Inerror = true
-				diag.NewDE(ERROR, fmt.Sprintf("got blocking error in executable %s : %v", comp.GetName(), err))
-				break
+	for _, evt := range p.events {
+		select {
+		case <-ctx.Done():
+			diag.NewDE(WARN, "Pipeline got canceled before finishing")
+			return ctx.Err()
+		default:
+			err := evt.ExecuteInPipeline(p, ctx)
+			if err != nil {
+				if evt.GetShouldStopIfError() {
+					p.Inerror = true
+					diag.NewDE(ERROR, fmt.Sprintf("got blocking error in executable %s : %v", evt.GetName(), err))
+					break
+				}
 			}
 		}
 	}
