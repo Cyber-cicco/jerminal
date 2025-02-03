@@ -51,7 +51,6 @@ func (p *Pipeline) ExecutePipeline(ctx context.Context) error {
 	diag := NewDiag(fmt.Sprintf("%s", p.Name))
 
 	p.Diagnostic = diag
-	diag.NewDE(INFO, "Config was cloned")
 	// Clean up work from the agent at end of pipeline
 	defer func() {
 		err := p.Agent.CleanUp()

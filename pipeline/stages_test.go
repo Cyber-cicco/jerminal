@@ -131,7 +131,6 @@ func TestStagesExecute2(t *testing.T) {
 
 func TestStagesExecute3(t *testing.T) {
 	p := _test_getPipeline("TestStagesExecute3")
-    return
 	stage1 := stage{
 		name: "stage1",
 		executors: []*executor{

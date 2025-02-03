@@ -12,10 +12,6 @@ func __test_pipeline1(t *testing.T) (*Pipeline, error) {
 		AnyAgent(),
 		Stages("stages_1", // 1 diag for the stages
 			Stage("stage_1", // 1 diag for the stage
-                Exec(func(p *Pipeline, ctx context.Context) error {
-                    t.Fatalf("jui dans le stage 1")
-                    return nil
-                }),
 				SH("echo", "bonjour"),
 				SH("echo", "bonjour"),
 				SH("echo", "bonjour"),

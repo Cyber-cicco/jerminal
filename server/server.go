@@ -81,10 +81,11 @@ func (s *Server) listenSockets() {
 				if err != nil {
 					fmt.Printf("Could not marshall struct: %v\n", err)
 				}
-				_, err = c.Write(res)
-				if err != nil {
-					fmt.Println("Could not write to unix socket")
-				}
+                _, err = c.Write(res)
+                if err != nil {
+                    fmt.Println("Could not write to unix socket")
+                    panic(err)
+                }
 			}
 
 		}(conn)
