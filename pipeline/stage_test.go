@@ -1,6 +1,7 @@
 package pipeline
 
 import (
+	"context"
 	"errors"
 	"os"
 	"path/filepath"
@@ -14,20 +15,20 @@ func TestStageExecute1(t *testing.T) {
 		name: "test1",
 		executors: []*executor{
 			{
-				ex: Exec(func(p *Pipeline) error {
+				ex: Exec(func(p *Pipeline, ctx context.Context) error {
 					t.Log("first exec func")
 					actual++
 					return nil
 				}),
 				recoveryFunc: nil,
-				deferedFunc: Exec(func(p *Pipeline) error {
+				deferedFunc: Exec(func(p *Pipeline, ctx context.Context) error {
 					t.Log("defered exec func")
 					actual *= actual
 					return nil
 				}),
 			},
 			{
-				ex: Exec(func(p *Pipeline) error {
+				ex: Exec(func(p *Pipeline, ctx context.Context) error {
 					t.Log("second exec func")
 					actual++
 					return nil
@@ -36,12 +37,12 @@ func TestStageExecute1(t *testing.T) {
 				deferedFunc:  nil,
 			},
 			{
-				ex: Exec(func(p *Pipeline) error {
+				ex: Exec(func(p *Pipeline, ctx context.Context) error {
 					t.Log("third exec func")
 					actual++
 					return errors.New("test")
 				}),
-				recoveryFunc: Exec(func(p *Pipeline) error {
+				recoveryFunc: Exec(func(p *Pipeline, ctx context.Context) error {
 					t.Log("forth exec func")
 					actual++
 					return nil
@@ -56,7 +57,7 @@ func TestStageExecute1(t *testing.T) {
 		executionOrder:    0,
 	}
 
-	err := stage.ExecuteStage(p)
+	err := stage.ExecuteStage(p, context.Background())
 
 	if err != nil {
 		t.Fatalf("Did not expect error, got %v", err)
@@ -78,20 +79,20 @@ func TestStageExecute2(t *testing.T) {
 		name: "test1",
 		executors: []*executor{
 			{
-				ex: Exec(func(p *Pipeline) error {
+				ex: Exec(func(p *Pipeline, ctx context.Context) error {
 					t.Log("first exec func")
 					actual++
 					return nil
 				}),
 				recoveryFunc: nil,
-				deferedFunc: Exec(func(p *Pipeline) error {
+				deferedFunc: Exec(func(p *Pipeline, ctx context.Context) error {
 					t.Log("defered exec func")
 					actual *= actual
 					return nil
 				}),
 			},
 			{
-				ex: Exec(func(p *Pipeline) error {
+				ex: Exec(func(p *Pipeline, ctx context.Context) error {
 					t.Log("second exec func")
 					actual++
 					return nil
@@ -100,7 +101,7 @@ func TestStageExecute2(t *testing.T) {
 				deferedFunc:  nil,
 			},
 			{
-				ex: Exec(func(p *Pipeline) error {
+				ex: Exec(func(p *Pipeline, ctx context.Context) error {
 					t.Log("third exec func")
 					actual++
 					return errors.New("test")
@@ -116,7 +117,7 @@ func TestStageExecute2(t *testing.T) {
 		executionOrder:    0,
 	}
 
-	err := stage.ExecuteStage(p)
+	err := stage.ExecuteStage(p, context.Background())
 
 	if err == nil {
 		t.Fatalf("Expected error nothing instead")
@@ -133,28 +134,28 @@ func TestExecTryCatch(t *testing.T) {
 	actual := 0
 	expected := 4
 	exec := ExecTryCatch(
-		func(p *Pipeline) error {
+		func(p *Pipeline, ctx context.Context) error {
 			actual++
 			return err
 		},
 		ExecTryCatch(
-			func(p *Pipeline) error {
+			func(p *Pipeline, ctx context.Context) error {
 				actual++
 				return err
 			},
 			ExecTryCatch(
-				func(p *Pipeline) error {
+				func(p *Pipeline, ctx context.Context) error {
 					actual++
 					return err
 				},
-				Exec(func(p *Pipeline) error {
+				Exec(func(p *Pipeline, ctx context.Context) error {
 					actual++
 					return err
 				}),
 			),
 		),
 	)
-	err = exec.Execute(p)
+	err = exec.Execute(p, context.Background())
 	if err == nil {
 		t.Fatalf("Expected an error, got nothing instead")
 	}
@@ -169,12 +170,12 @@ func TestExecTryCatch(t *testing.T) {
 func TestCache(t *testing.T) {
     p := _test_getPipeline("TestCache")
     cache := Cache("test")
-    agentPath := filepath.Join(p.state.AgentDir, p.agent.Identifier)
-    pipeLinePath := filepath.Join(p.state.PipelineDir, p.id.String())
+    agentPath := filepath.Join(p.state.AgentDir, p.Agent.Identifier)
+    pipeLinePath := filepath.Join(p.state.PipelineDir, p.Id.String())
     p.mainDirectory = agentPath
     p.directory = agentPath
     os.MkdirAll(filepath.Join(p.directory, "test"), os.ModePerm)
-    cache.Execute(p)
+    cache.Execute(p, context.Background())
     _, err := os.Stat(filepath.Join(pipeLinePath, "test"))
 
     if err != nil {

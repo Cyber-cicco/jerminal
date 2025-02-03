@@ -11,11 +11,11 @@ type post struct {
 }
 
 // Invoked by post in case of success
-type Success func(p *Pipeline) error
+type Success func(p *Pipeline, ctx context.Context) error
 // Invoked by post in case of failure
-type Failure func(p *Pipeline) error
+type Failure func(p *Pipeline, ctx context.Context) error
 // Always invoked by post
-type Always func(p *Pipeline) error
+type Always func(p *Pipeline, ctx context.Context) error
 
 func (p *post) ExecuteInPipeline(pipeline *Pipeline, ctx context.Context) error {
     diag := NewDiag("post")
@@ -25,17 +25,17 @@ func (p *post) ExecuteInPipeline(pipeline *Pipeline, ctx context.Context) error 
         pipeline.ResetDiag()
     }()
     if pipeline.Inerror {
-        err := p.failure.ExecuteError(pipeline)
+        err := p.failure.ExecuteError(pipeline, ctx)
         if err != nil {
             return err
         }
     } else {
-        err := p.success.ExecuteSuccess(pipeline)
+        err := p.success.ExecuteSuccess(pipeline, ctx)
         if err != nil {
             return err
         }
     }
-    return p.always.ExecuteAlways(pipeline)
+    return p.always.ExecuteAlways(pipeline, ctx)
 }
 
 func (p *post) GetName() string {
@@ -58,14 +58,14 @@ func (p *post) GetShouldStopIfError() bool {
 	return true
 }
 
-func (s Success) ExecuteSuccess(p *Pipeline) error {
-    return s(p)
+func (s Success) ExecuteSuccess(p *Pipeline, ctx context.Context) error {
+    return s(p, ctx)
 }
 
-func (f Failure) ExecuteError(p *Pipeline) error {
-    return f(p)
+func (f Failure) ExecuteError(p *Pipeline, ctx context.Context) error {
+    return f(p, ctx)
 }
 
-func (a Always) ExecuteAlways(p *Pipeline) error {
-    return a(p)
+func (a Always) ExecuteAlways(p *Pipeline, ctx context.Context) error {
+    return a(p, ctx)
 }

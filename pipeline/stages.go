@@ -53,7 +53,7 @@ func (s *stages) ExecuteInPipeline(p *Pipeline, ctx context.Context) error {
 			wg.Add(1)
 			go func(p *Pipeline, s *stage) {
 				defer wg.Done()
-				err := s.ExecuteStage(p)
+				err := s.ExecuteStage(p, ctx)
 				if err != nil {
 					if s.shouldStopIfError {
 						errchan <- err
@@ -84,7 +84,7 @@ func (s *stages) ExecuteInPipeline(p *Pipeline, ctx context.Context) error {
 			diag.NewDE(WARN, fmt.Sprintf("Stages got canceled before finishing"))
 			return ctx.Err()
 		default:
-			err := stage.ExecuteStage(p)
+			err := stage.ExecuteStage(p, ctx)
 			if err != nil {
 				if stage.shouldStopIfError {
 					return err

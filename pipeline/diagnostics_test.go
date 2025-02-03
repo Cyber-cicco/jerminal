@@ -30,13 +30,13 @@ func __test_pipeline2() (*Pipeline, error) {
 		AnyAgent(),
 		Stages("stages_1", // 1 diag for the stages
 			Stage("stage_1", // 1 diag for the stage
-				Exec(func(p *Pipeline) error { return nil }),
+				Exec(func(p *Pipeline, ctx context.Context) error { return nil }),
 			), // 1 diag event at the end of stage_1
 			Stage("stage_2", // 1 diag for the stage
-				Exec(func(p *Pipeline) error { return errors.New("test") }), // 1 diag for error
+				Exec(func(p *Pipeline, ctx context.Context) error { return errors.New("test") }), // 1 diag for error
 			), // 1 diag event at the end of stage_2
 			Stage("stage_3", // no diag here
-				Exec(func(p *Pipeline) error { return errors.New("test") }),
+				Exec(func(p *Pipeline, ctx context.Context) error { return errors.New("test") }),
 			), // no diag here
 		), // diag event at the end
 	) // diag event at the end

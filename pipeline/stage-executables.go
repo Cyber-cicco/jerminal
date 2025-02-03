@@ -1,6 +1,7 @@
 package pipeline
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -28,11 +29,11 @@ type executor struct {
 }
 
 // Exec defines a function type that performs a task within a pipeline.
-type Exec func(p *Pipeline) error
+type Exec func(p *Pipeline, ctx context.Context) error
 
 // Execute executes a task and handles retries on failure.
-func (e Exec) Execute(p *Pipeline) error {
-	return e(p)
+func (e Exec) Execute(p *Pipeline, ctx context.Context) error {
+	return e(p, ctx)
 }
 
 // Stage initializes a new stage with the provided executables.
@@ -63,13 +64,13 @@ func Stage(name string, executables ...executable) *stage {
 
 // ExecuteStage runs the executables in a stage sequentially and records the elapsed time.
 // If there is retries before failure
-func (s *stage) ExecuteStage(p *Pipeline) error {
+func (s *stage) ExecuteStage(p *Pipeline, ctx context.Context) error {
 	diag := NewDiag(fmt.Sprintf("%s | stage %s", p.Name, s.name))
 	p.Diagnostic.AddChild(diag)
 	var err error
 	var i uint16 = 0
 	for true {
-		err = s.executeOnce(p, diag)
+		err = s.executeOnce(p, diag, ctx)
 		if err != nil && i+1 < s.tries {
 			diag.NewDE(WARN, fmt.Sprintf("Task failed for the %d time, retrying in %d seconds", i+1, s.delay))
 			time.Sleep(time.Duration(s.delay) * time.Second)
@@ -82,13 +83,13 @@ func (s *stage) ExecuteStage(p *Pipeline) error {
 }
 
 // Runs the executables without caring about the number of tries
-func (s *stage) executeOnce(p *Pipeline, diag *Diagnostic) error {
+func (s *stage) executeOnce(p *Pipeline, diag *Diagnostic, ctx context.Context) error {
 	var lastErr error
 	defer func() {
 		for i, ex := range s.executors {
 			diag.NewDE(DEBUG, "Executing clean up of stage")
 			if ex.deferedFunc != nil {
-				err := ex.deferedFunc.Execute(p)
+				err := ex.deferedFunc.Execute(p, ctx)
 				if err != nil {
 					diag.NewDE(ERROR, fmt.Sprintf("Stage %s got error %v in execution n°%d", s.name, err, i))
 					lastErr = err
@@ -105,7 +106,7 @@ func (s *stage) executeOnce(p *Pipeline, diag *Diagnostic) error {
 	for i, ex := range s.executors {
 		if ex.ex != nil {
 			diag.NewDE(DEBUG, fmt.Sprintf("executing task n°%d of stage", i))
-			err := ex.Execute(p)
+			err := ex.Execute(p, ctx)
 			if err != nil {
 				diag.NewDE(ERROR, fmt.Sprintf("Stage %s got error %v in execution n°%d", s.name, err, i))
 				return err
@@ -143,10 +144,10 @@ func (s *stage) Retry(retries, delaySeconds uint16) *stage {
 }
 
 // Execute runs the executor's main task. If it fails, the recovery function is invoked.
-func (e *executor) Execute(p *Pipeline) error {
-	err := e.ex.Execute(p)
+func (e *executor) Execute(p *Pipeline, ctx context.Context) error {
+	err := e.ex.Execute(p, ctx)
 	if err != nil && e.recoveryFunc != nil {
-		return e.recoveryFunc.Execute(p)
+		return e.recoveryFunc.Execute(p, ctx)
 	}
 	return err
 }
@@ -180,9 +181,9 @@ func Defer(defered Exec) executable {
 
 // Cache copies a directory in the cache
 func Cache(dirname string) executable {
-	return Exec(func(p *Pipeline) error {
+	return Exec(func(p *Pipeline, ctx context.Context) error {
 		targetPath := filepath.Join(p.directory, dirname)
-		cachePath := filepath.Join(p.state.PipelineDir, p.id.String(), dirname)
+		cachePath := filepath.Join(p.state.PipelineDir, p.Id.String(), dirname)
 		p.Diagnostic.NewDE(INFO, fmt.Sprintf("Caching directory %s", targetPath))
 		_, err := os.Stat(targetPath)
 
@@ -200,7 +201,7 @@ func Cache(dirname string) executable {
 		}
 
 		sh := SH("rsync", targetPath, cachePath)
-		err = sh.Execute(p)
+		err = sh.Execute(p, ctx)
 
 		return err
 	})

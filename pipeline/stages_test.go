@@ -1,6 +1,7 @@
 package pipeline
 
 import (
+	"context"
 	"errors"
 	"testing"
 	"time"
@@ -14,7 +15,7 @@ func TestStagesExecute1(t *testing.T) {
 		name: "stage1",
 		executors: []*executor{
 			{
-				ex: Exec(func(p *Pipeline) error {
+				ex: Exec(func(p *Pipeline, ctx context.Context) error {
 					t.Log("first stage func")
 					actual++
 					return nil
@@ -26,7 +27,7 @@ func TestStagesExecute1(t *testing.T) {
 		name: "stage2",
 		executors: []*executor{
 			{
-				ex: Exec(func(p *Pipeline) error {
+				ex: Exec(func(p *Pipeline, ctx context.Context) error {
 					t.Log("second stage func")
 					actual++
 					return nil
@@ -42,7 +43,7 @@ func TestStagesExecute1(t *testing.T) {
 		shouldStopIfError: true,
 		parallel:          false,
 	}
-	err := stages.ExecuteInPipeline(p)
+	err := stages.ExecuteInPipeline(p, context.Background())
 
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
@@ -61,7 +62,7 @@ func TestStagesExecute2(t *testing.T) {
 		name: "stage1",
 		executors: []*executor{
 			{
-				ex: Exec(func(p *Pipeline) error {
+				ex: Exec(func(p *Pipeline, ctx context.Context) error {
 					t.Log("first stage func")
 					actual++
 					return errors.New("test")
@@ -74,7 +75,7 @@ func TestStagesExecute2(t *testing.T) {
 		name: "stage2",
 		executors: []*executor{
 			{
-				ex: Exec(func(p *Pipeline) error {
+				ex: Exec(func(p *Pipeline, ctx context.Context) error {
 					t.Log("second stage func")
 					actual++
 					return nil
@@ -87,7 +88,7 @@ func TestStagesExecute2(t *testing.T) {
 		name: "stage3",
 		executors: []*executor{
 			{
-				ex: Exec(func(p *Pipeline) error {
+				ex: Exec(func(p *Pipeline, ctx context.Context) error {
 					t.Log("second stage func")
 					actual++
 					return errors.New("test")
@@ -100,7 +101,7 @@ func TestStagesExecute2(t *testing.T) {
 		name: "stage4",
 		executors: []*executor{
 			{
-				ex: Exec(func(p *Pipeline) error {
+				ex: Exec(func(p *Pipeline, ctx context.Context) error {
 					t.Log("second stage func")
 					actual++
 					return nil
@@ -117,7 +118,7 @@ func TestStagesExecute2(t *testing.T) {
 		shouldStopIfError: false,
 		parallel:          false,
 	}
-	err := stages.ExecuteInPipeline(p)
+	err := stages.ExecuteInPipeline(p, context.Background())
 
 	if err == nil {
 		t.Fatalf("Expected an error, got nothing")
@@ -134,7 +135,7 @@ func TestStagesExecute3(t *testing.T) {
 		name: "stage1",
 		executors: []*executor{
 			{
-				ex: Exec(func(p *Pipeline) error {
+				ex: Exec(func(p *Pipeline, ctx context.Context) error {
 					time.Sleep(1 * time.Second)
 					return nil
 				}),
@@ -146,7 +147,7 @@ func TestStagesExecute3(t *testing.T) {
 		name: "stage2",
 		executors: []*executor{
 			{
-				ex: Exec(func(p *Pipeline) error {
+				ex: Exec(func(p *Pipeline, ctx context.Context) error {
 					time.Sleep(1 * time.Second)
 					return nil
 				}),
@@ -158,7 +159,7 @@ func TestStagesExecute3(t *testing.T) {
 		name: "stage3",
 		executors: []*executor{
 			{
-				ex: Exec(func(p *Pipeline) error {
+				ex: Exec(func(p *Pipeline, ctx context.Context) error {
 					time.Sleep(1 * time.Second)
 					return nil
 				}),
@@ -175,7 +176,7 @@ func TestStagesExecute3(t *testing.T) {
 		parallel:          false,
 	}
 	begin := time.Now().Unix()
-	err := stages1.ExecuteInPipeline(p)
+	err := stages1.ExecuteInPipeline(p, context.Background())
 	end := time.Now().Unix()
 
 	spent := end - begin
@@ -190,7 +191,7 @@ func TestStagesExecute3(t *testing.T) {
 	stages1.parallel = true
 
 	begin = time.Now().Unix()
-	err = stages1.ExecuteInPipeline(p)
+	err = stages1.ExecuteInPipeline(p, context.Background())
 	end = time.Now().Unix()
 
 	spent = end - begin
@@ -211,7 +212,7 @@ func TestStagesExecute4(t *testing.T) {
 		name: "stage1",
 		executors: []*executor{
 			{
-				ex: Exec(func(p *Pipeline) error {
+				ex: Exec(func(p *Pipeline, ctx context.Context) error {
 					return errors.New("test")
 				}),
 			},
@@ -221,7 +222,7 @@ func TestStagesExecute4(t *testing.T) {
         delay: 1,
 	}
     begin := time.Now().Unix()
-    err := stage1.ExecuteStage(p)
+    err := stage1.ExecuteStage(p, context.Background())
     end := time.Now().Unix()
 
     if err == nil {

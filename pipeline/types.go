@@ -61,5 +61,5 @@ type pipelineLog interface {
 //
 // Implemented by Exec, executor
 type executable interface {
-	Execute(p *Pipeline) error // Executes the entity.
+	Execute(p *Pipeline, ctx context.Context) error // Executes the entity.
 }

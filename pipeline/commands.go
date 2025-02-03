@@ -1,6 +1,7 @@
 package pipeline
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -13,7 +14,7 @@ import (
 // It gives back two functions : one to set the context of the stage to the specified
 // diretory, and one to execute later that puts the current directory back to the original
 func CD(dir string) *executor {
-	cd := func(p *Pipeline) error {
+	cd := func(p *Pipeline, ctx context.Context) error {
 		// Reject absolute paths
 		if filepath.IsAbs(dir) {
 			return errors.New("absolute paths are not allowed")
@@ -38,7 +39,7 @@ func CD(dir string) *executor {
 		return nil
 	}
 
-	defered := func(p *Pipeline) error {
+	defered := func(p *Pipeline, ctx context.Context) error {
 		p.directory = p.mainDirectory
 		return nil
 	}
@@ -52,7 +53,7 @@ func CD(dir string) *executor {
 
 // SH Executes a command in the directory of the current agent
 func SH(name string, args ...string) executable {
-	return Exec(func(p *Pipeline) error {
+	return Exec(func(p *Pipeline, ctx context.Context) error {
 		cmd := exec.Command(name, args...)
 		cmd.Dir = p.directory
         p.Diagnostic.NewDE(DEBUG, fmt.Sprintf("Executing command %s", name))

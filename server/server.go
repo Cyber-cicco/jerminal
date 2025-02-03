@@ -20,8 +20,8 @@ import (
 // Test variable. Should be replaced with config
 const TEST_ENV_VAR = "GITHUB_WEBHOOK_SECRET"
 
-// HookServer receives the webhook call and executes pipelines
-type HookServer struct {
+// Server receives the webhook call and executes pipelines
+type Server struct {
 	listener        net.Listener                  // Unix socket listener
 	pipelines       map[string]*pipeline.Pipeline // map of names to a pipeline
 	port            uint16                        // port to listen to
@@ -29,8 +29,8 @@ type HookServer struct {
 }
 
 // New creates a new server to Listen for incoming webhooks
-func New(port uint16) *HookServer {
-	server := &HookServer{
+func New(port uint16) *Server {
+	server := &Server{
 		pipelines: map[string]*pipeline.Pipeline{},
 		port:      port,
 	}
@@ -53,16 +53,10 @@ func New(port uint16) *HookServer {
 	return server
 }
 
-// listenForCancellation waits for a Socket with a message as such:
-// cancel <pipeline-name>
-//
-// Might want to structure this a bit more so you can listen to more
-// types of messages
-//
 // # The structure of the message should be of JSON RPC, like for the LSPs
 //
 // This would give an interface for other local programs to interact with the process.
-func (s *HookServer) listenForCancellation() {
+func (s *Server) listenForCancellation() {
 	for {
 		fmt.Printf("At beginning of listening for cancelation")
 		conn, err := s.listener.Accept()
@@ -92,6 +86,7 @@ func (s *HookServer) listenForCancellation() {
                 _, err = c.Write(res)
                 if err != nil {
                     fmt.Println("Could not write to unix socket")
+                    panic(err)
                 }
 			}
 
@@ -100,7 +95,7 @@ func (s *HookServer) listenForCancellation() {
 }
 
 // handleMessage checks for the message type and calls the appropriate function
-func (s *HookServer) handleMessage(req *rpc.JRPCRequest, content []byte) ([]byte, error) {
+func (s *Server) handleMessage(req *rpc.JRPCRequest, content []byte) ([]byte, error) {
 	switch req.Method {
 
 	case "pipeline-cancelation":
@@ -141,7 +136,7 @@ func (s *HookServer) handleMessage(req *rpc.JRPCRequest, content []byte) ([]byte
 }
 
 // Cancel a specific pipeline by its label
-func (s *HookServer) cancelPipelineByLabel(cancelParams rpc.CancelationRequest) error {
+func (s *Server) cancelPipelineByLabel(cancelParams rpc.CancelationRequest) error {
 	fmt.Println("Cancelling the pipeline")
 	fn, ok := s.activePipelines.Load(cancelParams.Params.PipelineId)
 	if !ok {
@@ -153,14 +148,14 @@ func (s *HookServer) cancelPipelineByLabel(cancelParams rpc.CancelationRequest) 
 }
 
 // Puts the pipelines in the server
-func (s *HookServer) SetPipelines(pipelines []*pipeline.Pipeline) {
+func (s *Server) SetPipelines(pipelines []*pipeline.Pipeline) {
 	for _, p := range pipelines {
 		s.pipelines[p.Name] = p
 	}
 }
 
 // Listen for calls to hook
-func (s *HookServer) Listen() {
+func (s *Server) Listen() {
 	http.Handle("/hook/", http.HandlerFunc(s.handleWebhook))
 	if s.port != 0 {
 		fmt.Printf("Listening on port %v\n", s.port)
@@ -171,7 +166,7 @@ func (s *HookServer) Listen() {
 
 // Function that handles weebooks by triggering the pipeline
 // with the id set in the url
-func (s *HookServer) handleWebhook(w http.ResponseWriter, r *http.Request) {
+func (s *Server) handleWebhook(w http.ResponseWriter, r *http.Request) {
 
 	id, err := getPipelineId(r)
 
@@ -196,7 +191,7 @@ func (s *HookServer) handleWebhook(w http.ResponseWriter, r *http.Request) {
 }
 
 // Modified BeginPipeline to track active pipelines
-func (s *HookServer) BeginPipeline(id string) {
+func (s *Server) BeginPipeline(id string) {
 	pipeline, ok := s.pipelines[id]
 	if !ok {
 		fmt.Printf("Wrong id received %s", id)

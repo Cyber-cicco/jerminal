@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"time"
 
@@ -30,7 +31,7 @@ func main() {
 				SH("touch", "/home/hijokaidan/PC/jerminal/test_1.txt"),
 			),
 			Stage("test",
-				Exec(func(p *Pipeline) error {
+                Exec(func(p *Pipeline, ctx context.Context) error {
 					if i < 2 {
 						i++
 						return errors.New("test error")
@@ -84,23 +85,23 @@ func main() {
 		AnyAgent(),
 		Stages("stages_1", 
 			Stage("stage_1", 
-                Exec(func(p *Pipeline) error {
+                Exec(func(p *Pipeline, ctx context.Context) error {
                     time.Sleep(time.Second * 5)
                     return nil
                 }),
-                Exec(func(p *Pipeline) error {
+                Exec(func(p *Pipeline, ctx context.Context) error {
                     time.Sleep(time.Second * 5)
                     return nil
                 }),
-                Exec(func(p *Pipeline) error {
+                Exec(func(p *Pipeline, ctx context.Context) error {
                     time.Sleep(time.Second * 5)
                     return nil
                 }),
-                Exec(func(p *Pipeline) error {
+                Exec(func(p *Pipeline, ctx context.Context) error {
                     time.Sleep(time.Second * 5)
                     return nil
                 }),
-                Exec(func(p *Pipeline) error {
+                Exec(func(p *Pipeline, ctx context.Context) error {
                     time.Sleep(time.Second * 5)
                     return nil
                 }),
@@ -108,7 +109,7 @@ func main() {
 		), 
 		Stages("stages_2", 
 			Stage("stage_1", 
-                Exec(func(p *Pipeline) error {
+                Exec(func(p *Pipeline, ctx context.Context) error {
                     time.Sleep(time.Second * 5)
                     return nil
                 }),
@@ -116,7 +117,7 @@ func main() {
 		), 
 		Stages("stages_3", 
 			Stage("stage_1", 
-                Exec(func(p *Pipeline) error {
+                Exec(func(p *Pipeline, ctx context.Context) error {
                     time.Sleep(time.Second * 5)
                     return nil
                 }),
@@ -124,7 +125,7 @@ func main() {
 		), 
 		Stages("stages_4", 
 			Stage("stage_1", 
-                Exec(func(p *Pipeline) error {
+                Exec(func(p *Pipeline, ctx context.Context) error {
                     time.Sleep(time.Second * 5)
                     return nil
                 }),

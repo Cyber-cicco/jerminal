@@ -40,7 +40,7 @@ func RunOnce(executables ...executable) *onceRunner {
 // ExecuteInPipeline runs all executables in a OnceRunner.
 func (o *onceRunner) ExecuteInPipeline(p *Pipeline, ctx context.Context) error {
 
-	pipelinePath := filepath.Join(p.state.PipelineDir, p.id.String())
+	pipelinePath := filepath.Join(p.state.PipelineDir, p.Id.String())
 	empty, err := utils.IsDirEmpty(p.directory)
 
 	if err != nil {
@@ -63,7 +63,7 @@ func (o *onceRunner) ExecuteInPipeline(p *Pipeline, ctx context.Context) error {
 		case <-ctx.Done():
             p.Diagnostic.NewDE(WARN, "Job got canceled before finishing")
         default:
-			err := ex.Execute(p)
+			err := ex.Execute(p, ctx)
 			if err != nil {
 				return err
 			}

@@ -40,9 +40,11 @@ func (r *Report) Report(p *Pipeline) error {
 				}
 			}
 			fileName := fmt.Sprintf("%s-%s.json", p.StartTime.Format(FILE_DATE_TIME_LAYOUT), p.GetId())
+            clone := *p
+            clone.Diagnostic = clone.Diagnostic.FilterBasedOnImportance(r.LogLevel)
 			filePath := filepath.Join(dirPath, fileName)
 			fileContent, err := json.MarshalIndent(
-				p.Diagnostic.FilterBasedOnImportance(r.LogLevel),
+				clone,
 				"",
 				"  ",
 			)

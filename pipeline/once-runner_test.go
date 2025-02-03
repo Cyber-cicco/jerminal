@@ -1,6 +1,7 @@
 package pipeline
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"testing"
@@ -10,7 +11,7 @@ func TestOnceRunner(t *testing.T) {
 	p := _test_getPipeline("TestOnceRunner")
 	o := &onceRunner{
 		executables: []executable{
-			Exec(func(p *Pipeline) error {
+			Exec(func(p *Pipeline, ctx context.Context) error {
 				err := os.Mkdir(filepath.Join(p.directory, "test"), os.ModePerm)
 				return err
 			}),
@@ -19,15 +20,15 @@ func TestOnceRunner(t *testing.T) {
 		Diagnostic:     &Diagnostic{},
 	}
 
-	dirPathPipe := filepath.Join(p.state.PipelineDir, p.id.String())
-	dirPathAgent := filepath.Join(filepath.Join(p.state.AgentDir, p.agent.Identifier))
+	dirPathPipe := filepath.Join(p.state.PipelineDir, p.Id.String())
+	dirPathAgent := filepath.Join(filepath.Join(p.state.AgentDir, p.Agent.Identifier))
     os.MkdirAll(dirPathPipe, os.ModePerm)
     os.MkdirAll(dirPathAgent, os.ModePerm)
 
     p.mainDirectory = dirPathAgent
     p.directory = dirPathAgent
 
-	err := o.ExecuteInPipeline(p)
+	err := o.ExecuteInPipeline(p, context.Background())
 
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)

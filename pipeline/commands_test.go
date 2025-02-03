@@ -1,6 +1,7 @@
 package pipeline
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"testing"
@@ -9,7 +10,7 @@ import (
 func TestSH(t *testing.T) {
 
     p := _test_getPipeline("TestSH")
-    agentPath := filepath.Join(p.state.AgentDir, p.agent.Identifier)
+    agentPath := filepath.Join(p.state.AgentDir, p.Agent.Identifier)
     p.mainDirectory = agentPath
     p.directory = agentPath
     os.MkdirAll(agentPath, os.ModePerm)
@@ -17,12 +18,12 @@ func TestSH(t *testing.T) {
 
     fun1 := SH("mkdir", "test")
     fun2 := SH("rmdir", "test")
-    fun1.Execute(p)
+    fun1.Execute(p, context.Background())
     _, err := os.Stat(filepath.Join(p.directory, "test"))
     if err != nil {
         t.Fatalf("Expected no error, got %v", err)
     }
-    fun2.Execute(p)
+    fun2.Execute(p, context.Background())
 
     _, err = os.Stat(filepath.Join(p.directory, "test"))
     if err == nil {
@@ -33,7 +34,7 @@ func TestSH(t *testing.T) {
 
 func TestCD(t *testing.T) {
     p := _test_getPipeline("TestCD")
-    agentPath := filepath.Join(p.state.AgentDir, p.agent.Identifier)
+    agentPath := filepath.Join(p.state.AgentDir, p.Agent.Identifier)
     p.mainDirectory = agentPath
     p.directory = agentPath
     os.MkdirAll(agentPath, os.ModePerm)
@@ -44,14 +45,14 @@ func TestCD(t *testing.T) {
 
     cd := CD("test")
 
-    sh1.Execute(p)
-    err := cd.Execute(p)
+    sh1.Execute(p, context.Background())
+    err := cd.Execute(p, context.Background())
 
     if err != nil {
         t.Fatalf("Got an error when changing directory %v", err)
     }
 
-    sh2.Execute(p)
+    sh2.Execute(p, context.Background())
 
     _, err = os.Stat(filepath.Join(p.mainDirectory, "test", "me"))
 
@@ -65,9 +66,9 @@ func TestCD(t *testing.T) {
         t.Fatalf("File was not created at the right place")
     }
 
-    cd.deferedFunc.Execute(p)
+    cd.deferedFunc.Execute(p, context.Background())
 
-    sh2.Execute(p)
+    sh2.Execute(p, context.Background())
 
     _, err = os.Stat(filepath.Join(p.mainDirectory, "me"))
 
