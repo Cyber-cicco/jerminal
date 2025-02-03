@@ -64,6 +64,7 @@ func New(port uint16) *HookServer {
 // This would give an interface for other local programs to interact with the process.
 func (s *HookServer) listenForCancellation() {
 	for {
+        fmt.Printf("At beginning of listening for cancelation")
 		conn, err := s.listener.Accept()
 		if err != nil {
 			fmt.Printf("Failed to accept connection: %v\n", err)
@@ -76,13 +77,17 @@ func (s *HookServer) listenForCancellation() {
 			scanner := bufio.NewScanner(c)
 			scanner.Split(rpc.SplitFunc)
 			for scanner.Scan() {
+                fmt.Printf("Message scanned")
 				msg := scanner.Bytes()
 				method, content, err := rpc.DecodeMessage(msg)
 				if err != nil {
 					fmt.Printf("Error encountered : %s", err)
 					continue
 				}
-				s.handleMessage(method, content)
+                err = s.handleMessage(method, content)
+                if err != nil {
+                    fmt.Printf("err: %v\n", err)
+                }
 			}
 
 		}(conn)
@@ -110,15 +115,13 @@ func (s *HookServer) handleMessage(method string, content []byte) error {
 
 // Cancel a specific pipeline by its label
 func (s *HookServer) cancelPipelineByLabel(cancelParams rpc.CancelationRequest) error {
-	s.activePipelines.Range(func(key, value interface{}) bool {
-		if cancelParams.Params.PipelineId == key.(string) {
-			if cancel, ok := value.(context.CancelFunc); ok {
-				cancel()
-				s.activePipelines.Delete(key)
-			}
-		}
-		return true
-	})
+    fmt.Println("Cancelling the pipeline")
+    fn, ok := s.activePipelines.Load(cancelParams.Params.PipelineId)
+    if !ok {
+        return errors.New("Pipeline not found")
+    }
+    cancelFunc := fn.(context.CancelFunc)
+    cancelFunc()
 	return nil
 }
 
@@ -155,8 +158,6 @@ func (s *HookServer) handleWebhook(w http.ResponseWriter, r *http.Request) {
 	_, _, err = getBody(r.Body)
 	defer r.Body.Close()
 
-	//TODO add logging to MongoDB or json files
-
 	if err != nil {
 		http.Error(w, "Failed to read request body", http.StatusInternalServerError)
 		return
@@ -175,12 +176,13 @@ func (s *HookServer) BeginPipeline(id string) {
         fmt.Printf("Wrong id received %s", id)
         return
     }
+    clone := pipeline.Clone()
     
     // Create a new context for this pipeline execution
     ctx, cancelPipeline := context.WithCancel(context.Background())
     
     // Generate a unique execution ID
-    executionID := fmt.Sprintf("%s:%s", pipeline.Name, pipeline.GetId())
+    executionID := fmt.Sprintf("%s", clone.GetId())
     
     // Store the cancel function
     s.activePipelines.Store(executionID, cancelPipeline)
@@ -193,7 +195,6 @@ func (s *HookServer) BeginPipeline(id string) {
         defer s.activePipelines.Delete(executionID)
         defer cancelPipeline()
         
-        clone := *pipeline
         err := clone.ExecutePipeline(ctx)
         if err != nil {
             if err == context.Canceled {

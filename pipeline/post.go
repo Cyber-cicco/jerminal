@@ -1,5 +1,9 @@
 package pipeline
 
+import (
+	"context"
+)
+
 type post struct {
 	success Success
 	failure Failure
@@ -13,7 +17,7 @@ type Failure func(p *Pipeline) error
 // Always invoked by post
 type Always func(p *Pipeline) error
 
-func (p *post) ExecuteInPipeline(pipeline *Pipeline) error {
+func (p *post) ExecuteInPipeline(pipeline *Pipeline, ctx context.Context) error {
     diag := NewDiag("post")
     pipeline.Diagnostic.AddChild(diag)
     pipeline.Diagnostic = diag

@@ -27,8 +27,8 @@ type CancelationRequest struct {
 }
 
 type CancelationRequestParams struct {
-	PipelineId                     string // Unique identifier of the pipeline to cancel
-	PipeLineLifetimeSecret string // Secret ensuring the process has the rights to perform cancelation
+	PipelineId                     string `json:"pipeline-id"` // Unique identifier of the pipeline to cancel
+	PipeLineLifetimeSecret string `json:"pipeline-lt-secret"` // Secret ensuring the process has the rights to perform cancelation
 }
 
 type TerminationRequest struct {

@@ -42,7 +42,7 @@ func (d *Diagnostic) NewDE(importance DEImp, description string) {
 		Time:        time.Now().Format(DATE_TIME_LAYOUT),
 		Name:        d.Label,
 	}
-	//newEvt.Log()
+	newEvt.Log()
 	d.Events = append(d.Events, newEvt)
 }
 

@@ -42,6 +42,7 @@ type AgentProvider func(p *Pipeline) *state.Agent
 // MUST BE CALLED IN A GOROUTINE BY THE SERVER
 func (p *Pipeline) ExecutePipeline(ctx context.Context) error {
 	var lastErr error
+    fmt.Printf("p.id: %v\n", p.id)
 	p.StartTime = time.Now()
 
 	diag := NewDiag(fmt.Sprintf("%s", p.Name))
@@ -95,6 +96,7 @@ func (p *Pipeline) ExecutePipeline(ctx context.Context) error {
 	for _, evt := range p.events {
 		select {
 		case <-ctx.Done():
+            fmt.Printf("\"done\": %v\n", "done")
 			diag.NewDE(WARN, "Pipeline got canceled before finishing")
 			return ctx.Err()
 		default:
@@ -129,6 +131,12 @@ func (p *Pipeline) ReportSQLITE() {
 
 func (p *Pipeline) SetReportLogLevel(imp DEImp) {
 	p.Report.LogLevel = imp
+}
+
+func (p *Pipeline) Clone() Pipeline {
+    pipeline := *p
+    pipeline.id = uuid.New()
+    return pipeline
 }
 
 // SetPipeline initializes a new pipeline with the specified agent and components.

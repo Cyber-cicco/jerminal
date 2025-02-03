@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"time"
 
 	. "github.com/Cyber-cicco/jerminal/pipeline"
 	"github.com/Cyber-cicco/jerminal/server"
@@ -79,10 +80,61 @@ func main() {
 		), // 1 diag at the end
 	)
 	p3.ReportJson()
+	p4, err := SetPipeline("test4", 
+		AnyAgent(),
+		Stages("stages_1", 
+			Stage("stage_1", 
+                Exec(func(p *Pipeline) error {
+                    time.Sleep(time.Second * 5)
+                    return nil
+                }),
+                Exec(func(p *Pipeline) error {
+                    time.Sleep(time.Second * 5)
+                    return nil
+                }),
+                Exec(func(p *Pipeline) error {
+                    time.Sleep(time.Second * 5)
+                    return nil
+                }),
+                Exec(func(p *Pipeline) error {
+                    time.Sleep(time.Second * 5)
+                    return nil
+                }),
+                Exec(func(p *Pipeline) error {
+                    time.Sleep(time.Second * 5)
+                    return nil
+                }),
+			), 
+		), 
+		Stages("stages_2", 
+			Stage("stage_1", 
+                Exec(func(p *Pipeline) error {
+                    time.Sleep(time.Second * 5)
+                    return nil
+                }),
+			), 
+		), 
+		Stages("stages_3", 
+			Stage("stage_1", 
+                Exec(func(p *Pipeline) error {
+                    time.Sleep(time.Second * 5)
+                    return nil
+                }),
+			), 
+		), 
+		Stages("stages_4", 
+			Stage("stage_1", 
+                Exec(func(p *Pipeline) error {
+                    time.Sleep(time.Second * 5)
+                    return nil
+                }),
+			), 
+		), 
+	)
 	if err != nil {
 		panic(err)
 	}
 	s := server.New(8002)
-	s.SetPipelines([]*Pipeline{p1, p2, p3})
+	s.SetPipelines([]*Pipeline{p1, p2, p3, p4})
 	s.Listen()
 }
