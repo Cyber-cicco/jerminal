@@ -22,9 +22,9 @@ const TEST_ENV_VAR = "GITHUB_WEBHOOK_SECRET"
 
 // HookServer receives the webhook call and executes pipelines
 type HookServer struct {
+	listener        net.Listener                  // Unix socket listener
 	pipelines       map[string]*pipeline.Pipeline // map of names to a pipeline
 	port            uint16                        // port to listen to
-	listener        net.Listener                  // Unix socket listener
 	activePipelines sync.Map                      // map[string]context.CancelFunc
 }
 
@@ -64,7 +64,7 @@ func New(port uint16) *HookServer {
 // This would give an interface for other local programs to interact with the process.
 func (s *HookServer) listenForCancellation() {
 	for {
-        fmt.Printf("At beginning of listening for cancelation")
+		fmt.Printf("At beginning of listening for cancelation")
 		conn, err := s.listener.Accept()
 		if err != nil {
 			fmt.Printf("Failed to accept connection: %v\n", err)
@@ -77,16 +77,21 @@ func (s *HookServer) listenForCancellation() {
 			scanner := bufio.NewScanner(c)
 			scanner.Split(rpc.SplitFunc)
 			for scanner.Scan() {
-                fmt.Printf("Message scanned")
+				fmt.Printf("Message scanned")
 				msg := scanner.Bytes()
-				method, content, err := rpc.DecodeMessage(msg)
+				req, content, err := rpc.DecodeMessage(msg)
 				if err != nil {
 					fmt.Printf("Error encountered : %s", err)
 					continue
 				}
-                err = s.handleMessage(method, content)
+				res, err := s.handleMessage(req, content)
+				if err != nil {
+					fmt.Printf("Could not marshall struct: %v\n", err)
+                    panic(err)
+				}
+                _, err = c.Write(res)
                 if err != nil {
-                    fmt.Printf("err: %v\n", err)
+                    fmt.Println("Could not write to unix socket")
                 }
 			}
 
@@ -94,37 +99,58 @@ func (s *HookServer) listenForCancellation() {
 	}
 }
 
-// Trigger function 
-func (s *HookServer) handleMessage(method string, content []byte) error {
-	switch method {
+// handleMessage checks for the message type and calls the appropriate function
+func (s *HookServer) handleMessage(req *rpc.JRPCRequest, content []byte) ([]byte, error) {
+	switch req.Method {
 
 	case "pipeline-cancelation":
 
 		var cancelParams rpc.CancelationRequest
 		err := json.Unmarshal(content, &cancelParams)
 		if err != nil {
-			return err
+			res := rpc.NewError(&req.Id, rpc.ErrorData{
+				Code:    rpc.INVALID_PARAMS,
+				Message: "Parmas could not be parsed",
+				Data:    nil,
+			})
+			bytes, err := json.Marshal(res)
+			return bytes, err
 		}
-        err = s.cancelPipelineByLabel(cancelParams)
-		return err
+		err = s.cancelPipelineByLabel(cancelParams)
+		if err != nil {
+			res := rpc.NewError(&req.Id, rpc.ErrorData{
+				Code:    rpc.INVALID_PARAMS,
+				Message: err.Error(),
+				Data:    nil,
+			})
+			bytes, err := json.Marshal(res)
+			return bytes, err
+		}
+		res := rpc.NewResult(req.Id, "cancelation succeeded")
+		bytes, err := json.Marshal(res)
+		return bytes, err
 
 	default:
-		return errors.New("Unsupported method")
+        res := rpc.NewError(&req.Id, rpc.ErrorData{
+            Code: rpc.METHOD_NOT_FOUND,
+            Message: fmt.Sprintf("Method %s is not supported", req.Method),
+        })
+        bytes, err := json.Marshal(res)
+        return bytes, err
 	}
 }
 
 // Cancel a specific pipeline by its label
 func (s *HookServer) cancelPipelineByLabel(cancelParams rpc.CancelationRequest) error {
-    fmt.Println("Cancelling the pipeline")
-    fn, ok := s.activePipelines.Load(cancelParams.Params.PipelineId)
-    if !ok {
-        return errors.New("Pipeline not found")
-    }
-    cancelFunc := fn.(context.CancelFunc)
-    cancelFunc()
+	fmt.Println("Cancelling the pipeline")
+	fn, ok := s.activePipelines.Load(cancelParams.Params.PipelineId)
+	if !ok {
+		return errors.New("Pipeline not found")
+	}
+	cancelFunc := fn.(context.CancelFunc)
+	cancelFunc()
 	return nil
 }
-
 
 // Puts the pipelines in the server
 func (s *HookServer) SetPipelines(pipelines []*pipeline.Pipeline) {
@@ -171,47 +197,47 @@ func (s *HookServer) handleWebhook(w http.ResponseWriter, r *http.Request) {
 
 // Modified BeginPipeline to track active pipelines
 func (s *HookServer) BeginPipeline(id string) {
-    pipeline, ok := s.pipelines[id]
-    if !ok {
-        fmt.Printf("Wrong id received %s", id)
-        return
-    }
-    clone := pipeline.Clone()
-    
-    // Create a new context for this pipeline execution
-    ctx, cancelPipeline := context.WithCancel(context.Background())
-    
-    // Generate a unique execution ID
-    executionID := fmt.Sprintf("%s", clone.GetId())
-    
-    // Store the cancel function
-    s.activePipelines.Store(executionID, cancelPipeline)
-    
-    // Create channel for cleanup coordination
-    done := make(chan struct{})
-    
-    go func() {
-        defer close(done)
-        defer s.activePipelines.Delete(executionID)
-        defer cancelPipeline()
-        
-        err := clone.ExecutePipeline(ctx)
-        if err != nil {
-            if err == context.Canceled {
-                fmt.Printf("Pipeline '%s' was cancelled\n", pipeline.Name)
-            } else {
-                fmt.Printf("Pipeline '%s' failed with error: %v\n", pipeline.Name, err)
-            }
-        }
-    }()
-    
-    // Wait for either context cancellation or pipeline completion
-    select {
-    case <-ctx.Done():
-        fmt.Printf("Pipeline '%s' cancelled\n", pipeline.Name)
-    case <-done:
-        fmt.Printf("Pipeline '%s' completed\n", pipeline.Name)
-    }
+	pipeline, ok := s.pipelines[id]
+	if !ok {
+		fmt.Printf("Wrong id received %s", id)
+		return
+	}
+	clone := pipeline.Clone()
+
+	// Create a new context for this pipeline execution
+	ctx, cancelPipeline := context.WithCancel(context.Background())
+
+	// Generate a unique execution ID
+	executionID := fmt.Sprintf("%s", clone.GetId())
+
+	// Store the cancel function
+	s.activePipelines.Store(executionID, cancelPipeline)
+
+	// Create channel for cleanup coordination
+	done := make(chan struct{})
+
+	go func() {
+		defer close(done)
+		defer s.activePipelines.Delete(executionID)
+		defer cancelPipeline()
+
+		err := clone.ExecutePipeline(ctx)
+		if err != nil {
+			if err == context.Canceled {
+				fmt.Printf("Pipeline '%s' was cancelled\n", pipeline.Name)
+			} else {
+				fmt.Printf("Pipeline '%s' failed with error: %v\n", pipeline.Name, err)
+			}
+		}
+	}()
+
+	// Wait for either context cancellation or pipeline completion
+	select {
+	case <-ctx.Done():
+		fmt.Printf("Pipeline '%s' cancelled\n", pipeline.Name)
+	case <-done:
+		fmt.Printf("Pipeline '%s' completed\n", pipeline.Name)
+	}
 }
 
 // Returns the name of the pipeline to start
