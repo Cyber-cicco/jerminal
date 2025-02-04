@@ -16,6 +16,7 @@ import (
 // It uses an Agent to manage execution and a directory for workspace.
 type Pipeline struct {
 	Agent         *config.Agent               `json:"agent"` // Agent executing the Pipeline
+	AgentProvider                             // function executed at runtime to provide the Agent to the pipeline
 	Name          string                      // human readable name of the pipeline
 	mainDirectory string                      // Base directory of the pipeline
 	directory     string                      // Working directory for the pipeline.
@@ -43,15 +44,14 @@ type AgentProvider func(p *Pipeline) *config.Agent
 // MUST BE CALLED IN A GOROUTINE BY THE SERVER
 func (p *Pipeline) ExecutePipeline(ctx context.Context) error {
 	var lastErr error
+    p.Agent = p.AgentProvider(p)
 	fmt.Printf("p.id: %v\n", p.Id)
 	p.StartTime = time.Now()
 
 	diag := NewDiag(fmt.Sprintf("%s", p.Name))
-	diag.NewDE(INFO, "starting main loop")
 
 	p.Diagnostic = diag
-	p.Config = p.globalState.CloneConfig()
-
+	diag.NewDE(INFO, "Config was cloned")
 	// Clean up work from the agent at end of pipeline
 	defer func() {
 		err := p.Agent.CleanUp()
@@ -93,6 +93,7 @@ func (p *Pipeline) ExecutePipeline(ctx context.Context) error {
 		}
 	}
 
+	diag.NewDE(INFO, "starting main loop")
 	//Executes all the things from the pipeline
 	for _, evt := range p.events {
 		select {
@@ -134,6 +135,13 @@ func (p *Pipeline) SetReportLogLevel(imp DEImp) {
 	p.Report.LogLevel = imp
 }
 
+// Clone gives back a shallow copy of the Pipeline
+//
+// Pipelines share their executables and their agent.
+//
+// Executed pipelines also share the same ClonedFrom property,
+// which corresponds to the ID they were cloned from
+// (hence the name)
 func (p *Pipeline) Clone() Pipeline {
 	pipeline := *p
 	pipeline.Id = uuid.New()
@@ -155,10 +163,11 @@ func SetPipeline(name string, agent AgentProvider, events ...pipelineEvents) (*P
 // setPipelineWithState gets a new pipeline with a config
 //
 // Only in testing should it be used by something else than SetPipeline
-func setPipelineWithState(name string, agent AgentProvider, config *config.GlobalStateProvider, events ...pipelineEvents) *Pipeline {
+func setPipelineWithState(name string, agentProvider AgentProvider, config *config.GlobalStateProvider, events ...pipelineEvents) *Pipeline {
 	p := Pipeline{
 		Name:          name,
 		Id:            uuid.New(),
+        AgentProvider: agentProvider,
 		mainDirectory: "",
 		directory:     "",
 		events:        events,
@@ -171,7 +180,6 @@ func setPipelineWithState(name string, agent AgentProvider, config *config.Globa
 			LogLevel:  INFO,
 		},
 	}
-	p.Agent = agent(&p)
 	return &p
 }
 func (p *Pipeline) ResetDiag() {

@@ -16,9 +16,10 @@ func (s *Server) handleMessage(req *rpc.JRPCRequest, content []byte) ([]byte, er
 
 	case "pipeline-cancelation":
 		return s.cancelPipeline(req, content)
-
 	case "list-existing-pipelines":
 		return s.listExistingPipelines(req, content)
+	case "launch-pipeline":
+		return s.startPipeline(req, content)
 
 	default:
 		res := rpc.NewError(&req.Id, rpc.ErrorData{
@@ -38,18 +39,22 @@ func (s *Server) cancelPipeline(req *rpc.JRPCRequest, content []byte) ([]byte, e
 	}
 	err = s.cancelPipelineByLabel(cancelParams)
 	if err != nil {
-        return invalidParamsError(req, err)
+		return invalidParamsError(req, err)
 	}
 	res := rpc.NewResult(req.Id, "cancelation succeeded")
 	return json.Marshal(res)
 }
 
-// listExistingPipelines gets back one pipeline based on it's id, or, if the 
+func (s *Server) startPipeline(req *rpc.JRPCRequest, content []byte) ([]byte, error) {
+    return nil, nil
+}
+
+// listExistingPipelines gets back one pipeline based on it's id, or, if the
 // id is not present, a set of pipelines
 func (s *Server) listExistingPipelines(req *rpc.JRPCRequest, content []byte) ([]byte, error) {
 
-    s.store.Lock()
-    defer s.store.Unlock()
+	s.store.Lock()
+	defer s.store.Unlock()
 
 	var params rpc.GetPipelinesReq
 	err := json.Unmarshal(content, &params)
@@ -57,34 +62,34 @@ func (s *Server) listExistingPipelines(req *rpc.JRPCRequest, content []byte) ([]
 		return unMarshalError(req)
 	}
 
-    pipelineMap := s.getMapBasedOnActive(params.Params.Active) 
+	pipelineMap := s.getMapBasedOnActive(params.Params.Active)
 
 	if params.Params.Id != nil {
-        var res rpc.JRPCSuccess[*pipeline.Pipeline]
-        pipeline, ok := pipelineMap[*params.Params.Id]
-        if !ok {
-            return invalidParamsError(req, errors.New("Pipeline not found"))
-        }
+		var res rpc.JRPCSuccess[*pipeline.Pipeline]
+		pipeline, ok := pipelineMap[*params.Params.Id]
+		if !ok {
+			return invalidParamsError(req, errors.New("Pipeline not found"))
+		}
 
-        res.Value = pipeline
-        return json.Marshal(res)
+		res.Value = pipeline
+		return json.Marshal(res)
 	}
 
-    pipelines := make([]*pipeline.Pipeline, len(pipelineMap))
-    i := 0
-    for _, v := range pipelineMap {
-        pipelines[i] = v
-        i++
-    }
+	pipelines := make([]*pipeline.Pipeline, len(pipelineMap))
+	i := 0
+	for _, v := range pipelineMap {
+		pipelines[i] = v
+		i++
+	}
 
-    return json.Marshal(pipelines)
+	return json.Marshal(pipelines)
 }
 
 func (s *Server) getMapBasedOnActive(active bool) map[string]*pipeline.Pipeline {
-    if active {
-        return s.store.ActivePipelines
-    }
-    return s.store.GlobalPipelines
+	if active {
+		return s.store.ActivePipelines
+	}
+	return s.store.GlobalPipelines
 }
 
 // Cancel a specific pipeline by its label
@@ -100,8 +105,9 @@ func (s *Server) cancelPipelineByLabel(cancelParams rpc.CancelationReq) error {
 	return nil
 }
 
+// unMarshalError is an helper function to signify the client that
+// his request was not formatted properly
 func unMarshalError(req *rpc.JRPCRequest) ([]byte, error) {
-
 	res := rpc.NewError(&req.Id, rpc.ErrorData{
 		Code:    rpc.INVALID_PARAMS,
 		Message: "Parmas could not be parsed",
@@ -111,6 +117,8 @@ func unMarshalError(req *rpc.JRPCRequest) ([]byte, error) {
 	return bytes, err
 }
 
+// invalidParamsError is an helper function to signify the client
+// has sent invalid data to the server
 func invalidParamsError(req *rpc.JRPCRequest, err error) ([]byte, error) {
 	res := rpc.NewError(&req.Id, rpc.ErrorData{
 		Code:    rpc.INVALID_PARAMS,
@@ -121,57 +129,46 @@ func invalidParamsError(req *rpc.JRPCRequest, err error) ([]byte, error) {
 	return bytes, err
 }
 
-// BeginPipeline starts a pipeline from the Id of ti
+// BeginPipeline starts a pipeline cloned from the original one.
+// Weird choice, should two of the same pipelines be able to
+// execute simultaneously ?
+// TODO : figure it out. If we decide to allow it, there will be 
+// problems with how agents are handled
+// If we accept this, AnyAgent must set the agent of the pipeline
+// at runtime
 func (s *Server) BeginPipeline(id string) {
-    s.store.Lock()
+	s.store.Lock()
 	pipeline, ok := s.store.GlobalPipelines[id]
-    s.store.Unlock()
+	s.store.Unlock()
 	if !ok {
 		fmt.Printf("Wrong id received %s", id)
 		return
 	}
+
+    // Get a shallow copy of the pipeline
 	clone := pipeline.Clone()
-
-	// Create a new context for this pipeline execution
 	ctx, cancelPipeline := context.WithCancel(context.Background())
-
-	executionID := clone.GetId()
-
-	// Store the cancel function
-	s.activePipelines.Store(executionID, cancelPipeline)
-
-	// Create channel for cleanup coordination
-	done := make(chan struct{})
+	s.activePipelines.Store(clone.GetId(), cancelPipeline)
 
 	go func() {
 
-		defer close(done)
-		defer s.activePipelines.Delete(executionID)
+		defer s.activePipelines.Delete(clone.GetId())
 		defer cancelPipeline()
 
-        s.store.Lock()
-        s.store.ActivePipelines[clone.GetId()] = &clone
-        s.store.Unlock()
+		s.store.Lock()
+		s.store.ActivePipelines[clone.GetId()] = &clone
+		s.store.Unlock()
 
 		err := clone.ExecutePipeline(ctx)
 		if err != nil {
-            s.store.Lock()
-            defer s.store.Unlock()
+			s.store.Lock()
+			defer s.store.Unlock()
 			if err == context.Canceled {
 				fmt.Printf("Pipeline '%s' was cancelled\n", pipeline.Name)
 			} else {
 				fmt.Printf("Pipeline '%s' failed with error: %v\n", pipeline.Name, err)
 			}
-            delete(s.store.ActivePipelines, clone.GetId())
+			delete(s.store.ActivePipelines, clone.GetId())
 		}
 	}()
-
-	// Wait for either context cancellation or pipeline completion
-	select {
-	case <-ctx.Done():
-		fmt.Printf("Pipeline '%s' cancelled\n", pipeline.Name)
-	case <-done:
-		fmt.Printf("Pipeline '%s' completed\n", pipeline.Name)
-	}
 }
-

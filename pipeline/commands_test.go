@@ -8,7 +8,6 @@ import (
 )
 
 func TestSH(t *testing.T) {
-
     p := _test_getPipeline("TestSH")
     agentPath := filepath.Join(p.globalState.AgentDir, p.Agent.Identifier)
     p.mainDirectory = agentPath

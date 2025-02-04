@@ -7,11 +7,15 @@ import (
 	"testing"
 )
 
-func __test_pipeline1() (*Pipeline, error) {
+func __test_pipeline1(t *testing.T) (*Pipeline, error) {
 	return SetPipeline("pipeline_1", // 1 diag event for the start
 		AnyAgent(),
 		Stages("stages_1", // 1 diag for the stages
 			Stage("stage_1", // 1 diag for the stage
+                Exec(func(p *Pipeline, ctx context.Context) error {
+                    t.Fatalf("jui dans le stage 1")
+                    return nil
+                }),
 				SH("echo", "bonjour"),
 				SH("echo", "bonjour"),
 				SH("echo", "bonjour"),
@@ -25,7 +29,7 @@ func __test_pipeline1() (*Pipeline, error) {
 	)
 }
 
-func __test_pipeline2() (*Pipeline, error) {
+func __test_pipeline2(t *testing.T) (*Pipeline, error) {
 	return SetPipeline("pipeline_1", // 1 diag event for the start
 		AnyAgent(),
 		Stages("stages_1", // 1 diag for the stages
@@ -42,9 +46,9 @@ func __test_pipeline2() (*Pipeline, error) {
 	) // diag event at the end
 }
 
-func __test__getPipelineDiagnostics(t *testing.T, f func() (*Pipeline, error)) *Pipeline {
+func __test__getPipelineDiagnostics(t *testing.T, f func(t *testing.T) (*Pipeline, error)) *Pipeline {
 
-	p1, err := f()
+	p1, err := f(t)
 
 	if err != nil {
 		t.Fatalf("Expected no error got %v", err)
@@ -63,7 +67,6 @@ func __test__getPipelineDiagnostics(t *testing.T, f func() (*Pipeline, error)) *
 }
 
 func TestDiagnostics(t *testing.T) {
-
 	p1 := __test__getPipelineDiagnostics(t, __test_pipeline1)
 	expected := "pipeline_1"
 	actual := p1.Diagnostic.Label
