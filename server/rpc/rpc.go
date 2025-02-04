@@ -51,14 +51,14 @@ type ErrorData struct {
 	Data    interface{} `json:"data,omitempty"`
 }
 
-type CancelationRequestParams struct {
+type CancelationReqParams struct {
 	PipelineId             string `json:"pipeline-id"`        // Unique identifier of the pipeline to cancel
 	PipeLineLifetimeSecret string `json:"pipeline-lt-secret"` // Secret ensuring the process has the rights to perform cancelation
 }
 
-type CancelationRequest struct {
+type CancelationReq struct {
 	JRPCRequest
-	Params CancelationRequestParams `json:"params"`
+	Params CancelationReqParams `json:"params"`
 }
 
 // ListPipelinesParams list request options to get
@@ -68,12 +68,12 @@ type ListPipelinesParams struct {
 	Active bool   // To know if the pipeline to search is a running process
 }
 
-type ListPipelinesRequest struct {
+type GetPipelinesReq struct {
 	JRPCRequest
 	Params ListPipelinesParams `json:"params"`
 }
 
-type TerminationRequest struct {
+type TerminationReq struct {
 }
 
 // SplitFunc allows to use a scanner to parse the JRPCRequest

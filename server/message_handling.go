@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/Cyber-cicco/jerminal/pipeline"
 	"github.com/Cyber-cicco/jerminal/server/rpc"
 )
 
@@ -30,7 +31,7 @@ func (s *Server) handleMessage(req *rpc.JRPCRequest, content []byte) ([]byte, er
 }
 
 func (s *Server) cancelPipeline(req *rpc.JRPCRequest, content []byte) ([]byte, error) {
-	var cancelParams rpc.CancelationRequest
+	var cancelParams rpc.CancelationReq
 	err := json.Unmarshal(content, &cancelParams)
 	if err != nil {
 		return unMarshalError(req)
@@ -40,32 +41,60 @@ func (s *Server) cancelPipeline(req *rpc.JRPCRequest, content []byte) ([]byte, e
         return invalidParamsError(req, err)
 	}
 	res := rpc.NewResult(req.Id, "cancelation succeeded")
-	bytes, err := json.Marshal(res)
-	return bytes, err
+	return json.Marshal(res)
 }
 
+// listExistingPipelines gets back one pipeline based on it's id, or, if the 
+// id is not present, a set of pipelines
 func (s *Server) listExistingPipelines(req *rpc.JRPCRequest, content []byte) ([]byte, error) {
-	var params rpc.ListPipelinesRequest
+
+    s.store.Lock()
+    defer s.store.Unlock()
+
+	var params rpc.GetPipelinesReq
 	err := json.Unmarshal(content, &params)
 	if err != nil {
 		return unMarshalError(req)
 	}
+
+    pipelineMap := s.getMapBasedOnActive(params.Params.Active) 
+
 	if params.Params.Id != nil {
-		pipelines := s.pipelines
-        fmt.Printf("pipelines: %v\n", pipelines)
-        //TODO : changer
-        return nil, nil
+        var res rpc.JRPCSuccess[*pipeline.Pipeline]
+        pipeline, ok := pipelineMap[*params.Params.Id]
+        if !ok {
+            return invalidParamsError(req, errors.New("Pipeline not found"))
+        }
+
+        res.Value = pipeline
+        return json.Marshal(pipeline)
 	}
-    return nil, nil
+
+    pipelines := make([]*pipeline.Pipeline, len(pipelineMap))
+    i := 0
+    for _, v := range pipelineMap {
+        pipelines[i] = v
+        i++
+    }
+
+    return json.Marshal(pipelines)
+}
+
+func (s *Server) getMapBasedOnActive(active bool) map[string]*pipeline.Pipeline {
+    if active {
+        return s.store.ActivePipelines
+    }
+    return s.store.GlobalPipelines
 }
 
 // Cancel a specific pipeline by its label
-func (s *Server) cancelPipelineByLabel(cancelParams rpc.CancelationRequest) error {
+func (s *Server) cancelPipelineByLabel(cancelParams rpc.CancelationReq) error {
 	fmt.Println("Cancelling the pipeline")
 	fn, ok := s.activePipelines.Load(cancelParams.Params.PipelineId)
 	if !ok {
 		return errors.New("Pipeline not found")
 	}
+
 	cancelFunc := fn.(context.CancelFunc)
 	cancelFunc()
 	return nil

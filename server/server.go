@@ -22,17 +22,17 @@ const TEST_ENV_VAR = "GITHUB_WEBHOOK_SECRET"
 
 // Server receives the webhook call and executes pipelines
 type Server struct {
-	listener        net.Listener                  // Unix socket listener
-	pipelines       map[string]*pipeline.Pipeline // map of names to a pipeline
-	port            uint16                        // port to listen to
-	activePipelines sync.Map                      // map[string]context.CancelFunc
+	listener        net.Listener    // Unix socket listener
+	port            uint16          // port to listen to
+	activePipelines sync.Map        // map[string]context.CancelFunc
+	store           *pipeline.Store //keeps track of the project pipelines activity
 }
 
 // New creates a new server to Listen for incoming webhooks
 func New(port uint16) *Server {
 	server := &Server{
-		pipelines: map[string]*pipeline.Pipeline{},
-		port:      port,
+		port:  port,
+		store: pipeline.GetStore(),
 	}
 
 	// Set up Unix socket
@@ -48,7 +48,7 @@ func New(port uint16) *Server {
 	server.listener = listener
 
 	// Start socket listener in goroutine
-	go server.listenForCancellation()
+	go server.listenSockets()
 
 	return server
 }
@@ -56,7 +56,7 @@ func New(port uint16) *Server {
 // # The structure of the message should be of JSON RPC, like for the LSPs
 //
 // This would give an interface for other local programs to interact with the process.
-func (s *Server) listenForCancellation() {
+func (s *Server) listenSockets() {
 	for {
 		fmt.Printf("At beginning of listening for cancelation")
 		conn, err := s.listener.Accept()
@@ -82,10 +82,10 @@ func (s *Server) listenForCancellation() {
 				if err != nil {
 					fmt.Printf("Could not marshall struct: %v\n", err)
 				}
-                _, err = c.Write(res)
-                if err != nil {
-                    fmt.Println("Could not write to unix socket")
-                }
+				_, err = c.Write(res)
+				if err != nil {
+					fmt.Println("Could not write to unix socket")
+				}
 			}
 
 		}(conn)
@@ -94,8 +94,10 @@ func (s *Server) listenForCancellation() {
 
 // Puts the pipelines in the server
 func (s *Server) SetPipelines(pipelines []*pipeline.Pipeline) {
+    s.store.Lock()
+    defer s.store.Unlock()
 	for _, p := range pipelines {
-		s.pipelines[p.Name] = p
+		s.store.GlobalPipelines[p.Name] = p
 	}
 }
 
@@ -137,7 +139,9 @@ func (s *Server) handleWebhook(w http.ResponseWriter, r *http.Request) {
 
 // Modified BeginPipeline to track active pipelines
 func (s *Server) BeginPipeline(id string) {
-	pipeline, ok := s.pipelines[id]
+    s.store.Lock()
+	pipeline, ok := s.store.GlobalPipelines[id]
+    s.store.Unlock()
 	if !ok {
 		fmt.Printf("Wrong id received %s", id)
 		return

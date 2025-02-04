@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # UUID of the pipeline to cancel
-PIPELINE_ID="e3f0c703-3c36-4ed4-9aac-ab27b39d9f79"
+PIPELINE_ID="c4548a16-7400-4291-8593-9929d0301d82"
 # Placeholder secret (adjust if the server expects a specific value)
 PIPELINE_SECRET="dummy-secret"
 
