@@ -12,15 +12,15 @@ import (
 func main() {
 	i := 0
 	standardPost := Post(
-		Success(func(p *Pipeline) error {
+		Success(func(p *Pipeline, ctx context.Context) error {
 			p.Diagnostic.NewDE(INFO, "Job was successfull")
 			return nil
 		}),
-		Failure(func(p *Pipeline) error {
+		Failure(func(p *Pipeline, ctx context.Context) error {
 			p.Diagnostic.NewDE(INFO, "Job failed")
 			return nil
 		}),
-		Always(func(p *Pipeline) error {
+		Always(func(p *Pipeline, ctx context.Context) error {
 			return nil
 		}),
 	)

@@ -183,7 +183,7 @@ func Defer(defered Exec) executable {
 func Cache(dirname string) executable {
 	return Exec(func(p *Pipeline, ctx context.Context) error {
 		targetPath := filepath.Join(p.directory, dirname)
-		cachePath := filepath.Join(p.state.PipelineDir, p.Id.String(), dirname)
+		cachePath := filepath.Join(p.globalState.PipelineDir, p.Id.String(), dirname)
 		p.Diagnostic.NewDE(INFO, fmt.Sprintf("Caching directory %s", targetPath))
 		_, err := os.Stat(targetPath)
 

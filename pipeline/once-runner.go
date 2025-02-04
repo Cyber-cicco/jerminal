@@ -12,7 +12,7 @@ import (
 // can be executed multiple times
 //
 // The first time it runs, it should execute the commands and caches the current
-// state of the directory
+// config of the directory
 //
 // The subsequent runs just copies the content of the directory in the agent directory
 type onceRunner struct {
@@ -40,7 +40,7 @@ func RunOnce(executables ...executable) *onceRunner {
 // ExecuteInPipeline runs all executables in a OnceRunner.
 func (o *onceRunner) ExecuteInPipeline(p *Pipeline, ctx context.Context) error {
 
-	pipelinePath := filepath.Join(p.state.PipelineDir, p.Id.String())
+	pipelinePath := filepath.Join(p.globalState.PipelineDir, p.Id.String())
 	empty, err := utils.IsDirEmpty(p.directory)
 
 	if err != nil {

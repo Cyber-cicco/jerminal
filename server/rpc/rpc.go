@@ -51,14 +51,26 @@ type ErrorData struct {
 	Data    interface{} `json:"data,omitempty"`
 }
 
-type CancelationRequest struct {
-	JRPCRequest
-	Params CancelationRequestParams
-}
-
 type CancelationRequestParams struct {
 	PipelineId             string `json:"pipeline-id"`        // Unique identifier of the pipeline to cancel
 	PipeLineLifetimeSecret string `json:"pipeline-lt-secret"` // Secret ensuring the process has the rights to perform cancelation
+}
+
+type CancelationRequest struct {
+	JRPCRequest
+	Params CancelationRequestParams `json:"params"`
+}
+
+// ListPipelinesParams list request options to get
+// a json representation of a / multiple pipelines
+type ListPipelinesParams struct {
+	Id     *string // Id if the pipeline to list. If not present, return every pipeline
+	Active bool   // To know if the pipeline to search is a running process
+}
+
+type ListPipelinesRequest struct {
+	JRPCRequest
+	Params ListPipelinesParams `json:"params"`
 }
 
 type TerminationRequest struct {
@@ -124,11 +136,11 @@ func NewError(reqId *int, err ErrorData) JRPCError {
 }
 
 func NewResult[T any](reqId int, value T) JRPCSuccess[T] {
-    return JRPCSuccess[T]{
-    	JRPCResponse: JRPCResponse{
-            RPC: "2.0",
-            ID: &reqId,
-        },
-    	Value:        value,
-    }
+	return JRPCSuccess[T]{
+		JRPCResponse: JRPCResponse{
+			RPC: "2.0",
+			ID:  &reqId,
+		},
+		Value: value,
+	}
 }

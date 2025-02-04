@@ -20,8 +20,8 @@ func TestOnceRunner(t *testing.T) {
 		Diagnostic:     &Diagnostic{},
 	}
 
-	dirPathPipe := filepath.Join(p.state.PipelineDir, p.Id.String())
-	dirPathAgent := filepath.Join(filepath.Join(p.state.AgentDir, p.Agent.Identifier))
+	dirPathPipe := filepath.Join(p.globalState.PipelineDir, p.Id.String())
+	dirPathAgent := filepath.Join(filepath.Join(p.globalState.AgentDir, p.Agent.Identifier))
     os.MkdirAll(dirPathPipe, os.ModePerm)
     os.MkdirAll(dirPathAgent, os.ModePerm)
 

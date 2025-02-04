@@ -5,13 +5,13 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/Cyber-cicco/jerminal/state"
+	"github.com/Cyber-cicco/jerminal/config"
 	"github.com/google/uuid"
 )
 
 func _test_getPipeline(agentId string) *Pipeline {
 	return &Pipeline{
-		Agent: &state.Agent{
+		Agent: &config.Agent{
 			Identifier: agentId,
 		},
 		Name:          "test",
@@ -22,7 +22,7 @@ func _test_getPipeline(agentId string) *Pipeline {
 		events:        []pipelineEvents{},
 		Inerror:       false,
 		Diagnostic:    &Diagnostic{},
-		state: state.GetStateCustomConf(&state.Config{
+		globalState: config.GetStateCustomConf(&config.Config{
 			AgentDir:             "./test/agent",
 			PipelineDir:          "./test/pipeline",
 			JerminalResourcePath: "../resources/jerminal.json",

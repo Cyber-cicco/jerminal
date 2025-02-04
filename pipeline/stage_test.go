@@ -170,8 +170,8 @@ func TestExecTryCatch(t *testing.T) {
 func TestCache(t *testing.T) {
     p := _test_getPipeline("TestCache")
     cache := Cache("test")
-    agentPath := filepath.Join(p.state.AgentDir, p.Agent.Identifier)
-    pipeLinePath := filepath.Join(p.state.PipelineDir, p.Id.String())
+    agentPath := filepath.Join(p.globalState.AgentDir, p.Agent.Identifier)
+    pipeLinePath := filepath.Join(p.globalState.PipelineDir, p.Id.String())
     p.mainDirectory = agentPath
     p.directory = agentPath
     os.MkdirAll(filepath.Join(p.directory, "test"), os.ModePerm)

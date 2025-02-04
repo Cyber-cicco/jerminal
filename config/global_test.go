@@ -1,4 +1,4 @@
-package state
+package config
 
 import (
 	"os"
@@ -8,7 +8,7 @@ import (
 var _test_count int = 1
 
 func TestAgentLifeCycle(t *testing.T) {
-	var STATE ApplicationState = ApplicationState{
+	var STATE GlobalStateProvider = GlobalStateProvider{
 		Config: &Config{
 			JerminalResourcePath: "../resources/jerminal.json",
 		},

@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/Cyber-cicco/jerminal/state"
+	"github.com/Cyber-cicco/jerminal/config"
 	"github.com/Cyber-cicco/jerminal/utils"
 	"github.com/google/uuid"
 )
@@ -15,27 +15,28 @@ import (
 // Pipeline represents the main execution context for stages and executors.
 // It uses an Agent to manage execution and a directory for workspace.
 type Pipeline struct {
-	Agent         *state.Agent            `json:"agent"` // Agent executing the Pipeline
-	Name          string                  // human readable name of the pipeline
-	mainDirectory string                  // Base directory of the pipeline
-	directory     string                  // Working directory for the pipeline.
-	Id            uuid.UUID               `json:"id"`       // UUID
-	TimeRan       uint32                  `json:"time-ran"` // Number of time the pipeline ran
-	events        []pipelineEvents        // components to be executed
-	Inerror       bool                    `json:"in-error"` // Indicate if a fatal error has been encountered
-	state         *state.ApplicationState // L'état de l'application
-	StartTime     time.Time               `json:"start-time"`  // Début de la pipeline
-	Diagnostic    *Diagnostic             `json:"diagnostics"` // Infos about the current process. It can change based on what stage is getting executed.
-	ElapsedTime   int64                   // Time it took to run the Pipeline
+	Agent         *config.Agent               `json:"agent"` // Agent executing the Pipeline
+	Name          string                      // human readable name of the pipeline
+	mainDirectory string                      // Base directory of the pipeline
+	directory     string                      // Working directory for the pipeline.
+	Id            uuid.UUID                   `json:"id"` // UUID
+	CloneFrom     *uuid.UUID                  `json:"parent,omitempty"`
+	TimeRan       uint32                      `json:"time-ran"` // Number of time the pipeline ran
+	events        []pipelineEvents            // components to be executed
+	Inerror       bool                        `json:"in-error"` // Indicate if a fatal error has been encountered
+	globalState   *config.GlobalStateProvider // L'état de l'application
+	StartTime     time.Time                   `json:"start-time"`  // Début de la pipeline
+	Diagnostic    *Diagnostic                 `json:"diagnostics"` // Infos about the current process. It can change based on what stage is getting executed.
+	ElapsedTime   int64                       // Time it took to run the Pipeline
 
 	// Copy of the config that should be initialized at start of
-	// the pipeline so it keeps it's state even if there is a change during the execution
-	Config *state.Config `json:"-"`
-	Report *Report       `json:"-"` // Config that allows to choose a way of logging the results into a file
+	// the pipeline so it keeps it's config even if there is a change during the execution
+	Config *config.Config `json:"-"`
+	Report *Report        `json:"-"` // Config that allows to choose a way of logging the results into a file
 }
 
 // Provides the agent for the pipeline
-type AgentProvider func(p *Pipeline) *state.Agent
+type AgentProvider func(p *Pipeline) *config.Agent
 
 // Launches the events of the pipeline
 //
@@ -49,7 +50,7 @@ func (p *Pipeline) ExecutePipeline(ctx context.Context) error {
 	diag.NewDE(INFO, "starting main loop")
 
 	p.Diagnostic = diag
-	p.Config = p.state.CloneConfig()
+	p.Config = p.globalState.CloneConfig()
 
 	// Clean up work from the agent at end of pipeline
 	defer func() {
@@ -75,7 +76,7 @@ func (p *Pipeline) ExecutePipeline(ctx context.Context) error {
 	p.mainDirectory = path
 	p.directory = p.mainDirectory
 
-	pipePath := filepath.Join(p.state.PipelineDir, p.Id.String())
+	pipePath := filepath.Join(p.globalState.PipelineDir, p.Id.String())
 
 	_, err = os.Stat(pipePath)
 
@@ -136,24 +137,25 @@ func (p *Pipeline) SetReportLogLevel(imp DEImp) {
 func (p *Pipeline) Clone() Pipeline {
 	pipeline := *p
 	pipeline.Id = uuid.New()
+	pipeline.CloneFrom = &p.Id
 	return pipeline
 }
 
 // SetPipeline initializes a new pipeline with the specified agent and components.
 //
-// It gets the current state of the app and gives back the Pipeline
+// It gets the current config of the app and gives back the Pipeline
 func SetPipeline(name string, agent AgentProvider, events ...pipelineEvents) (*Pipeline, error) {
-	s, err := state.GetState()
+	s, err := config.GetState()
 	if err != nil {
 		return nil, err
 	}
 	return setPipelineWithState(name, agent, s, events...), nil
 }
 
-// setPipelineWithState gets a new pipeline with a state
+// setPipelineWithState gets a new pipeline with a config
 //
 // Only in testing should it be used by something else than SetPipeline
-func setPipelineWithState(name string, agent AgentProvider, state *state.ApplicationState, events ...pipelineEvents) *Pipeline {
+func setPipelineWithState(name string, agent AgentProvider, config *config.GlobalStateProvider, events ...pipelineEvents) *Pipeline {
 	p := Pipeline{
 		Name:          name,
 		Id:            uuid.New(),
@@ -162,7 +164,7 @@ func setPipelineWithState(name string, agent AgentProvider, state *state.Applica
 		events:        events,
 		Diagnostic:    &Diagnostic{},
 		TimeRan:       0,
-		state:         state,
+		globalState:   config,
 		Report: &Report{
 			Types:     []ReportType{},
 			Directory: "./reports",
@@ -178,23 +180,23 @@ func (p *Pipeline) ResetDiag() {
 
 // Agent retrieves an agent with the specified identifier.
 func Agent(id string) AgentProvider {
-	return func(p *Pipeline) *state.Agent {
-		return p.state.GetAgent(id)
+	return func(p *Pipeline) *config.Agent {
+		return p.globalState.GetAgent(id)
 	}
 }
 
 // Returns the first agent available. If none is, returns
 // the default agent
 func AnyAgent() AgentProvider {
-	return func(p *Pipeline) *state.Agent {
-		return p.state.GetAnyAgent()
+	return func(p *Pipeline) *config.Agent {
+		return p.globalState.GetAnyAgent()
 	}
 }
 
 // Returns the default agent even if busy
 func DefaultAgent() AgentProvider {
-	return func(p *Pipeline) *state.Agent {
-		return p.state.DefaultAgent()
+	return func(p *Pipeline) *config.Agent {
+		return p.globalState.DefaultAgent()
 	}
 }
 

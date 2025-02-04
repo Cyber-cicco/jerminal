@@ -1,4 +1,4 @@
-package state
+package config
 
 import (
 	"encoding/json"
@@ -9,9 +9,8 @@ import (
 	"sync"
 )
 
-// ApplicationState represents global state of the application
-type ApplicationState struct {
-	sync.RWMutex
+// GlobalStateProvider represents global config of the application
+type GlobalStateProvider struct {
 	*Config
 	agents map[string]*Agent // map of identifiers to their agent
 }
@@ -20,14 +19,14 @@ type ApplicationState struct {
 // and cleans it up afterward. The Identifier uniquely identifies the agent.
 type Agent struct {
 	sync.Mutex
-	BusySig    *sync.Cond        // Signal informing if the Agent is busy
-	Identifier string            `json:"identifier"` // unique string representing an Agent
-	Busy       bool              // true if the agent is executing a pipeline
-	State      *ApplicationState // The application state
+	BusySig    *sync.Cond           // Signal informing if the Agent is busy
+	Identifier string               `json:"identifier"` // unique string representing an Agent
+	Busy       bool                 // true if the agent is executing a pipeline
+	State      *GlobalStateProvider // The application config
 }
 
 var (
-	state *ApplicationState
+	config *GlobalStateProvider
 	once  sync.Once
 )
 
@@ -38,7 +37,7 @@ const DEFAULT_AGENT = "6524a5fc-0772-4684-82d7-6900c444162b"
 // SHOULD ONLY BE CALLED ONCE
 func initializeApplicationState(conf *Config) error {
 	agents := []*Agent{}
-	state = &ApplicationState{
+	config = &GlobalStateProvider{
 		Config: conf,
 	}
 
@@ -59,7 +58,7 @@ func initializeApplicationState(conf *Config) error {
 	defaultAgent := &Agent{
 		Identifier: DEFAULT_AGENT,
 		Busy:       false,
-		State:      state,
+		State:      config,
 	}
 	defaultAgent.BusySig = sync.NewCond(&defaultAgent.Mutex)
 	agentMap[DEFAULT_AGENT] = defaultAgent
@@ -68,26 +67,26 @@ func initializeApplicationState(conf *Config) error {
 		newAgent := &Agent{
 			Identifier: agent.Identifier,
 			Busy:       false,
-			State:      state,
+			State:      config,
 		}
 		newAgent.BusySig = sync.NewCond(&newAgent.Mutex)
 		agentMap[newAgent.Identifier] = newAgent
 	}
 
-	state.agents = agentMap
+	config.agents = agentMap
 
 	return nil
 }
 
-// Gets the current state of the application with a default config.
-// Updates the state of the config, so if you change the config file
-// between getting the previous state and this one, it will run with
+// Gets the current config of the application with a default config.
+// Updates the config of the config, so if you change the config file
+// between getting the previous config and this one, it will run with
 // the updated config
 //
 // # Mutually exclusive with GetStateCustomConf
 //
 // Should be used by default
-func GetState() (*ApplicationState, error) {
+func GetState() (*GlobalStateProvider, error) {
 	var err error
 	once.Do(func() {
 		conf := &Config{
@@ -99,19 +98,19 @@ func GetState() (*ApplicationState, error) {
 	if err != nil {
 		return nil, err
 	}
-	return state, state.UpdateConfig()
+	return config, config.UpdateConfig()
 }
 
-// Gets the current state of the application with a custom config.
+// Gets the current config of the application with a custom config.
 //
 // # Mutually exclusive with GetState
 //
 // Should be used for tests
-func GetStateCustomConf(conf *Config) *ApplicationState {
+func GetStateCustomConf(conf *Config) *GlobalStateProvider {
 	once.Do(func() {
 		initializeApplicationState(conf)
 	})
-	return state
+	return config
 }
 
 // Initialize first waits until the agent has finished his
@@ -155,7 +154,7 @@ func (a *Agent) CleanUp() error {
 // GetAgent returns an agent from the map of agents
 //
 // Creates it does not exist yet
-func (s *ApplicationState) GetAgent(id string) *Agent {
+func (s *GlobalStateProvider) GetAgent(id string) *Agent {
 	s.Lock()
 	defer s.Unlock()
 
@@ -176,7 +175,7 @@ func (s *ApplicationState) GetAgent(id string) *Agent {
 // Gets the first non busy existing agent
 //
 // If every agent is busy, gets the default agent
-func (s *ApplicationState) GetAnyAgent() *Agent {
+func (s *GlobalStateProvider) GetAnyAgent() *Agent {
 
 	s.Lock()
 	defer s.Unlock()
@@ -193,7 +192,7 @@ func (s *ApplicationState) GetAnyAgent() *Agent {
 }
 
 // Gets the default agent back
-func (s *ApplicationState) DefaultAgent() *Agent {
+func (s *GlobalStateProvider) DefaultAgent() *Agent {
 	s.Lock()
 	defer s.Unlock()
 	return s.agents[DEFAULT_AGENT]
@@ -202,7 +201,7 @@ func (s *ApplicationState) DefaultAgent() *Agent {
 // Allows for retreival of configuration at an instant
 // allowing for the pipeline to stay coherent even if a change
 // to the config is made during it's runtime
-func (s *ApplicationState) CloneConfig() *Config {
+func (s *GlobalStateProvider) CloneConfig() *Config {
 	s.Lock()
 	defer s.Unlock()
 	s.Config.Lock()

@@ -81,70 +81,15 @@ func (s *Server) listenForCancellation() {
 				res, err := s.handleMessage(req, content)
 				if err != nil {
 					fmt.Printf("Could not marshall struct: %v\n", err)
-                    panic(err)
 				}
                 _, err = c.Write(res)
                 if err != nil {
                     fmt.Println("Could not write to unix socket")
-                    panic(err)
                 }
 			}
 
 		}(conn)
 	}
-}
-
-// handleMessage checks for the message type and calls the appropriate function
-func (s *Server) handleMessage(req *rpc.JRPCRequest, content []byte) ([]byte, error) {
-	switch req.Method {
-
-	case "pipeline-cancelation":
-
-		var cancelParams rpc.CancelationRequest
-		err := json.Unmarshal(content, &cancelParams)
-		if err != nil {
-			res := rpc.NewError(&req.Id, rpc.ErrorData{
-				Code:    rpc.INVALID_PARAMS,
-				Message: "Parmas could not be parsed",
-				Data:    nil,
-			})
-			bytes, err := json.Marshal(res)
-			return bytes, err
-		}
-		err = s.cancelPipelineByLabel(cancelParams)
-		if err != nil {
-			res := rpc.NewError(&req.Id, rpc.ErrorData{
-				Code:    rpc.INVALID_PARAMS,
-				Message: err.Error(),
-				Data:    nil,
-			})
-			bytes, err := json.Marshal(res)
-			return bytes, err
-		}
-		res := rpc.NewResult(req.Id, "cancelation succeeded")
-		bytes, err := json.Marshal(res)
-		return bytes, err
-
-	default:
-        res := rpc.NewError(&req.Id, rpc.ErrorData{
-            Code: rpc.METHOD_NOT_FOUND,
-            Message: fmt.Sprintf("Method %s is not supported", req.Method),
-        })
-        bytes, err := json.Marshal(res)
-        return bytes, err
-	}
-}
-
-// Cancel a specific pipeline by its label
-func (s *Server) cancelPipelineByLabel(cancelParams rpc.CancelationRequest) error {
-	fmt.Println("Cancelling the pipeline")
-	fn, ok := s.activePipelines.Load(cancelParams.Params.PipelineId)
-	if !ok {
-		return errors.New("Pipeline not found")
-	}
-	cancelFunc := fn.(context.CancelFunc)
-	cancelFunc()
-	return nil
 }
 
 // Puts the pipelines in the server

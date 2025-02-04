@@ -10,7 +10,7 @@ import (
 func TestSH(t *testing.T) {
 
     p := _test_getPipeline("TestSH")
-    agentPath := filepath.Join(p.state.AgentDir, p.Agent.Identifier)
+    agentPath := filepath.Join(p.globalState.AgentDir, p.Agent.Identifier)
     p.mainDirectory = agentPath
     p.directory = agentPath
     os.MkdirAll(agentPath, os.ModePerm)
@@ -34,7 +34,7 @@ func TestSH(t *testing.T) {
 
 func TestCD(t *testing.T) {
     p := _test_getPipeline("TestCD")
-    agentPath := filepath.Join(p.state.AgentDir, p.Agent.Identifier)
+    agentPath := filepath.Join(p.globalState.AgentDir, p.Agent.Identifier)
     p.mainDirectory = agentPath
     p.directory = agentPath
     os.MkdirAll(agentPath, os.ModePerm)
