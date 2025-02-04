@@ -67,7 +67,7 @@ func (s *Server) listExistingPipelines(req *rpc.JRPCRequest, content []byte) ([]
         }
 
         res.Value = pipeline
-        return json.Marshal(pipeline)
+        return json.Marshal(res)
 	}
 
     pipelines := make([]*pipeline.Pipeline, len(pipelineMap))
@@ -120,3 +120,58 @@ func invalidParamsError(req *rpc.JRPCRequest, err error) ([]byte, error) {
 	bytes, err := json.Marshal(res)
 	return bytes, err
 }
+
+// BeginPipeline starts a pipeline from the Id of ti
+func (s *Server) BeginPipeline(id string) {
+    s.store.Lock()
+	pipeline, ok := s.store.GlobalPipelines[id]
+    s.store.Unlock()
+	if !ok {
+		fmt.Printf("Wrong id received %s", id)
+		return
+	}
+	clone := pipeline.Clone()
+
+	// Create a new context for this pipeline execution
+	ctx, cancelPipeline := context.WithCancel(context.Background())
+
+	executionID := clone.GetId()
+
+	// Store the cancel function
+	s.activePipelines.Store(executionID, cancelPipeline)
+
+	// Create channel for cleanup coordination
+	done := make(chan struct{})
+
+	go func() {
+
+		defer close(done)
+		defer s.activePipelines.Delete(executionID)
+		defer cancelPipeline()
+
+        s.store.Lock()
+        s.store.ActivePipelines[clone.GetId()] = &clone
+        s.store.Unlock()
+
+		err := clone.ExecutePipeline(ctx)
+		if err != nil {
+            s.store.Lock()
+            defer s.store.Unlock()
+			if err == context.Canceled {
+				fmt.Printf("Pipeline '%s' was cancelled\n", pipeline.Name)
+			} else {
+				fmt.Printf("Pipeline '%s' failed with error: %v\n", pipeline.Name, err)
+			}
+            delete(s.store.ActivePipelines, clone.GetId())
+		}
+	}()
+
+	// Wait for either context cancellation or pipeline completion
+	select {
+	case <-ctx.Done():
+		fmt.Printf("Pipeline '%s' cancelled\n", pipeline.Name)
+	case <-done:
+		fmt.Printf("Pipeline '%s' completed\n", pipeline.Name)
+	}
+}
+

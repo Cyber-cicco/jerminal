@@ -137,53 +137,6 @@ func (s *Server) handleWebhook(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("Webhook received and verified"))
 }
 
-// Modified BeginPipeline to track active pipelines
-func (s *Server) BeginPipeline(id string) {
-    s.store.Lock()
-	pipeline, ok := s.store.GlobalPipelines[id]
-    s.store.Unlock()
-	if !ok {
-		fmt.Printf("Wrong id received %s", id)
-		return
-	}
-	clone := pipeline.Clone()
-
-	// Create a new context for this pipeline execution
-	ctx, cancelPipeline := context.WithCancel(context.Background())
-
-	// Generate a unique execution ID
-	executionID := fmt.Sprintf("%s", clone.GetId())
-
-	// Store the cancel function
-	s.activePipelines.Store(executionID, cancelPipeline)
-
-	// Create channel for cleanup coordination
-	done := make(chan struct{})
-
-	go func() {
-		defer close(done)
-		defer s.activePipelines.Delete(executionID)
-		defer cancelPipeline()
-
-		err := clone.ExecutePipeline(ctx)
-		if err != nil {
-			if err == context.Canceled {
-				fmt.Printf("Pipeline '%s' was cancelled\n", pipeline.Name)
-			} else {
-				fmt.Printf("Pipeline '%s' failed with error: %v\n", pipeline.Name, err)
-			}
-		}
-	}()
-
-	// Wait for either context cancellation or pipeline completion
-	select {
-	case <-ctx.Done():
-		fmt.Printf("Pipeline '%s' cancelled\n", pipeline.Name)
-	case <-done:
-		fmt.Printf("Pipeline '%s' completed\n", pipeline.Name)
-	}
-}
-
 // Returns the name of the pipeline to start
 func getPipelineId(r *http.Request) (string, error) {
 
@@ -209,5 +162,4 @@ func getBody(rBody io.ReadCloser) (WebhookPayload, []byte, error) {
 	var payload WebhookPayload
 	err = json.Unmarshal(body, &payload)
 	return payload, body, err
-
 }
