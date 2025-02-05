@@ -65,13 +65,28 @@ type CancelationReq struct {
 // a json representation of a / multiple pipelines
 type ListPipelinesParams struct {
 	Id     *string // Id if the pipeline to list. If not present, return every pipeline
-	Active bool   // To know if the pipeline to search is a running process
+	Active bool    // To know if the pipeline to search is a running process
 }
 
 type GetPipelinesReq struct {
 	JRPCRequest
 	Params ListPipelinesParams `json:"params"`
 }
+
+type StartPipelineReq struct {
+    JRPCRequest
+    Params StartPipelineParams
+}
+
+type StartPipelineParams struct {
+	Name string
+}
+
+type SimpleMessage struct {
+    Message string `json:"message"`
+}
+
+
 
 type TerminationReq struct {
 }

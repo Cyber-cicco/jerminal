@@ -16,7 +16,7 @@ import (
 // It uses an Agent to manage execution and a directory for workspace.
 type Pipeline struct {
 	Agent         *config.Agent               `json:"agent"` // Agent executing the Pipeline
-	AgentProvider                             // function executed at runtime to provide the Agent to the pipeline
+	agentProvider AgentProvider               // function executed at runtime to provide the Agent to the pipeline
 	Name          string                      // human readable name of the pipeline
 	mainDirectory string                      // Base directory of the pipeline
 	directory     string                      // Working directory for the pipeline.
@@ -44,7 +44,7 @@ type AgentProvider func(p *Pipeline) *config.Agent
 // MUST BE CALLED IN A GOROUTINE BY THE SERVER
 func (p *Pipeline) ExecutePipeline(ctx context.Context) error {
 	var lastErr error
-    p.Agent = p.AgentProvider(p)
+	p.Agent = p.agentProvider(p)
 	fmt.Printf("p.id: %v\n", p.Id)
 	p.StartTime = time.Now()
 
@@ -166,7 +166,7 @@ func setPipelineWithState(name string, agentProvider AgentProvider, config *conf
 	p := Pipeline{
 		Name:          name,
 		Id:            uuid.New(),
-        AgentProvider: agentProvider,
+		agentProvider: agentProvider,
 		mainDirectory: "",
 		directory:     "",
 		events:        events,

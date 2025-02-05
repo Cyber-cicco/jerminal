@@ -46,7 +46,26 @@ func (s *Server) cancelPipeline(req *rpc.JRPCRequest, content []byte) ([]byte, e
 }
 
 func (s *Server) startPipeline(req *rpc.JRPCRequest, content []byte) ([]byte, error) {
-    return nil, nil
+    var innerReq rpc.StartPipelineReq
+    err := json.Unmarshal(content, &innerReq)
+    if err != nil {
+        return unMarshalError(req)
+    }
+    err = s.BeginPipeline(innerReq.Params.Name)
+    
+    if err != nil {
+        return invalidParamsError(req, err)
+    }
+    res := rpc.JRPCSuccess[rpc.SimpleMessage]{
+    	JRPCResponse: rpc.JRPCResponse{
+    		RPC: "2.0",
+    		ID:  &req.Id,
+    	},
+    	Value:        rpc.SimpleMessage{
+    		Message: fmt.Sprintf("Pipeline %s started successfully", innerReq.Params.Name),
+    	},
+    }
+    return json.Marshal(res)
 }
 
 // listExistingPipelines gets back one pipeline based on it's id, or, if the
@@ -136,13 +155,14 @@ func invalidParamsError(req *rpc.JRPCRequest, err error) ([]byte, error) {
 // problems with how agents are handled
 // If we accept this, AnyAgent must set the agent of the pipeline
 // at runtime
-func (s *Server) BeginPipeline(id string) {
+// I thinks it's ok now
+func (s *Server) BeginPipeline(id string) error {
 	s.store.Lock()
 	pipeline, ok := s.store.GlobalPipelines[id]
 	s.store.Unlock()
 	if !ok {
 		fmt.Printf("Wrong id received %s", id)
-		return
+		return errors.New("Wrong id received")
 	}
 
     // Get a shallow copy of the pipeline
@@ -171,4 +191,5 @@ func (s *Server) BeginPipeline(id string) {
 			delete(s.store.ActivePipelines, clone.GetId())
 		}
 	}()
+    return nil
 }
