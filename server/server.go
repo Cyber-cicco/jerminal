@@ -57,7 +57,6 @@ func New(port uint16) *Server {
 // This would give an interface for other local programs to interact with the process.
 func (s *Server) listenSockets() {
 	for {
-		fmt.Printf("At beginning of listening for cancelation")
 		conn, err := s.listener.Accept()
 		if err != nil {
 			fmt.Printf("Failed to accept connection: %v\n", err)
