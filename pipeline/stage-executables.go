@@ -11,13 +11,13 @@ import (
 // stage represents a single step in a pipeline.
 // A stage contains executors that define tasks to be executed.
 type stage struct {
-	name              string      // Name of the stage.
-	executors         []*executor // List of executors to run in this stage.
-	shouldStopIfError bool        // Determines whether execution stops on error.
-	elapsedTime       int64       // Time taken to execute the stage (in milliseconds).
-	tries             uint16      // Number of times you have to try to execute the stage before accepting failure
-	delay             uint16      // Delay between the tries
-	executionOrder    uint32      // Execution order in the stages
+	name              string        // Name of the stage.
+	executors         []*executor   // List of executors to run in this stage.
+	shouldStopIfError bool          // Determines whether execution stops on error.
+	elapsedTime       int64         // Time taken to execute the stage (in milliseconds).
+	tries             uint16        // Number of times you have to try to execute the stage before accepting failure
+	delay             time.Duration // Delay between the tries
+	executionOrder    uint32        // Execution order in the stages
 }
 
 // executor represents a task within a stage. It includes a main executable
@@ -137,7 +137,7 @@ func (s *stage) DontStopIfErr() *stage {
 
 // Retry tells the current stage to retry x times with y seconds delay
 // between each try
-func (s *stage) Retry(retries, delaySeconds uint16) *stage {
+func (s *stage) Retry(retries uint16, delaySeconds time.Duration) *stage {
 	s.delay = delaySeconds
 	s.tries += retries
 	return s
