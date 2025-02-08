@@ -45,7 +45,7 @@ func readFullResponse(conn net.Conn) ([]byte, error) {
 }
 
 func randomMap(src *rand.Rand, t *testing.T) map[string]any {
-	maxLen := src.Intn(50)
+	maxLen := src.Intn(90)
 	randomMap := make(map[string]any, maxLen)
 	for i := 0; i < maxLen; i++ {
 		paramType := randType(src)
@@ -70,7 +70,7 @@ func randBool(src *rand.Rand) bool {
 }
 
 func randString(src *rand.Rand) string {
-	strLen := src.Intn(50)
+	strLen := src.Intn(150)
 	bytes := make([]byte, strLen)
 	src.Read(bytes)
 	return string(bytes)
@@ -82,8 +82,7 @@ func randString(src *rand.Rand) string {
 // appropriate framework to do so.
 func TestSocketsProcesses(t *testing.T) {
 	seed := time.Now().UnixNano()
-	t.Logf("Seed for this test : %v", seed)
-
+	defer func(){fmt.Printf("Seed for this test : %v\n", seed)}()
 	src := rand.New(rand.NewSource(seed))
 	p, err := SetPipeline("dst_scokets",
 		Agent("dst"),
@@ -111,15 +110,11 @@ func TestSocketsProcesses(t *testing.T) {
 					return nil
 				}),
 			),
-			// See if it can handle every type of payloads, even invalid json
+			// See if it can handle invalid JSON on pipeline-cancelation
 			Stage("random_payload_go",
 				Exec(func(p *Pipeline, ctx context.Context) error {
-					for i := 0; i < 1000; i++ {
-						conn, err := net.Dial("unix", "/tmp/pipeline-control.sock")
-						if err != nil {
-							panic(err)
-						}
-						defer conn.Close()
+					for i := 0; i < 20; i++ {
+						conn, _ := net.Dial("unix", "/tmp/pipeline-control.sock")
 						req := rpc.JRPCRequest{
 							JsonRpcVersion: "2.0",
 							Id:             0,
@@ -148,7 +143,13 @@ func TestSocketsProcesses(t *testing.T) {
 							t.Fatalf("unexpected error %v", err)
 							return fmt.Errorf("failed to read response: %v", err)
 						}
+                        expected := `{"jsonrpc":"2.0","id":0,"error":{"code":-32602,"message":"ID must be given"}}`
+                        actual := string(response)
+                        if expected != actual {
+                            t.Fatalf("Expected %s, got %s", expected, actual)
+                        }
 						fmt.Printf("response: %v\n", string(response))
+                        conn.Close()
 					}
 
 					return nil

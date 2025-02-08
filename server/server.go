@@ -68,7 +68,7 @@ func (s *Server) listenSockets() {
 		scanner := bufio.NewScanner(c)
 		scanner.Split(rpc.SplitFunc)
 		for scanner.Scan() {
-			fmt.Printf("Message scanned")
+			fmt.Printf("Message scanned\n")
 			msg := scanner.Bytes()
 			req, content, err := rpc.DecodeMessage[rpc.JRPCRequest](msg)
 			if err != nil {
@@ -76,7 +76,6 @@ func (s *Server) listenSockets() {
 				_, err = c.Write(rpc.JRPCRes(bytes))
 				if err != nil {
 					fmt.Println("Could not write to unix socket")
-					panic(err)
 				}
 				continue
 			}
@@ -84,7 +83,7 @@ func (s *Server) listenSockets() {
 			_, err = c.Write(rpc.JRPCRes(res))
 			if err != nil {
 				fmt.Println("Could not write to unix socket")
-				panic(err)
+                continue
 			}
 		}
 	}
