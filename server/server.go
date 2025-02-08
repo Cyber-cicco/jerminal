@@ -71,7 +71,7 @@ func (s *Server) listenSockets() {
 			for scanner.Scan() {
 				fmt.Printf("Message scanned")
 				msg := scanner.Bytes()
-				req, content, err := rpc.DecodeMessage(msg)
+				req, content, err := rpc.DecodeMessage[rpc.JRPCRequest](msg)
 				if err != nil {
 					fmt.Printf("Error encountered : %s", err)
 					continue

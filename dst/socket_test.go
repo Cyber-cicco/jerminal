@@ -1,10 +1,10 @@
 package dst
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"math/rand"
 	"net"
 	"strconv"
@@ -34,22 +34,16 @@ func randBytes(src *rand.Rand, t *testing.T) []byte {
 
 // Helper function for reading the complete response
 func readFullResponse(conn net.Conn) ([]byte, error) {
-	var response []byte
-	buffer := make([]byte, 1024)
-
-	for {
-		n, err := conn.Read(buffer)
-        fmt.Println("Got response !")
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			return nil, err
-		}
-		response = append(response, buffer[:n]...)
-	}
-
-	return response, nil
+	scanner := bufio.NewScanner(conn)
+	scanner.Split(rpc.SplitFunc)
+	scanner.Scan()
+	msg := scanner.Bytes()
+	req, content, err := rpc.DecodeMessage[rpc.JRPCResponse](msg)
+    if err != nil {
+        return nil, err
+    }
+    fmt.Printf("req: %v\n", req)
+	return content, nil
 }
 
 func randomMap(src *rand.Rand, t *testing.T) map[string]any {
@@ -105,7 +99,7 @@ func TestSocketsProcesses(t *testing.T) {
 					if err != nil {
 						panic(err)
 					}
-					defer conn.Close() 
+					defer conn.Close()
 					bytes := randBytes(src, t)
 					_, err = conn.Write(bytes)
 					if err != nil {
@@ -164,7 +158,8 @@ func TestSocketsProcesses(t *testing.T) {
 		t.Fatalf("Should not have gotten error, got %v", err)
 	}
 	if p.Inerror {
-		t.Log(p.Diagnostic)
+		p.Diagnostic.Log()
 		t.Fatalf("Pipeline got error")
 	}
+    t.Fatalf("test")
 }

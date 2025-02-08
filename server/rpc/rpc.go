@@ -119,7 +119,7 @@ func SplitFunc(data []byte, atEOF bool) (advance int, token []byte, err error) {
 
 // DecodeMessage gets the content of the message as deserializable JSON, and the method type
 // from a standard PMSP client message.
-func DecodeMessage(msg []byte) (*JRPCRequest, []byte, error) {
+func DecodeMessage[T any](msg []byte) (*T, []byte, error) {
 	header, content, found := bytes.Cut(msg, []byte{'\r', '\n', '\r', '\n'})
 
 	if !found {
@@ -133,7 +133,7 @@ func DecodeMessage(msg []byte) (*JRPCRequest, []byte, error) {
 		return nil, nil, err
 	}
 
-	var baseMessage JRPCRequest
+	var baseMessage T
 
 	err = json.Unmarshal(content[:contentLength], &baseMessage)
 	if err != nil {
