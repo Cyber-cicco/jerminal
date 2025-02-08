@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"encoding/json"
 	"io"
 	"os"
 )
@@ -33,4 +34,12 @@ func IsDirEmpty(dirPath string) (bool, error) {
     }
 
     return false, err
+}
+
+func MarshallOrCrash(val any) []byte {
+    bytes, err := json.Marshal(val)
+    if err != nil {
+        panic(err)
+    }
+    return bytes
 }

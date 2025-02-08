@@ -70,7 +70,7 @@ func (s *stage) ExecuteStage(p *Pipeline, ctx context.Context) error {
 	var err error
 	var i uint16 = 0
 	for true {
-		err = s.executeOnce(p, diag, ctx)
+		err = s.simpleExec(p, diag, ctx)
 		if err != nil && i+1 < s.tries {
 			diag.NewDE(WARN, fmt.Sprintf("Task failed for the %d time, retrying in %d seconds", i+1, s.delay))
 			time.Sleep(time.Duration(s.delay) * time.Second)
@@ -83,12 +83,12 @@ func (s *stage) ExecuteStage(p *Pipeline, ctx context.Context) error {
 }
 
 // Runs the executables without caring about the number of tries
-func (s *stage) executeOnce(p *Pipeline, diag *Diagnostic, ctx context.Context) error {
+func (s *stage) simpleExec(p *Pipeline, diag *Diagnostic, ctx context.Context) error {
 	var lastErr error
 	defer func() {
 		for i, ex := range s.executors {
-			diag.NewDE(DEBUG, "Executing clean up of stage")
 			if ex.deferedFunc != nil {
+				diag.NewDE(DEBUG, "Executing clean up of stage")
 				err := ex.deferedFunc.Execute(p, ctx)
 				if err != nil {
 					diag.NewDE(ERROR, fmt.Sprintf("Stage %s got error %v in execution n°%d", s.name, err, i))
@@ -97,6 +97,7 @@ func (s *stage) executeOnce(p *Pipeline, diag *Diagnostic, ctx context.Context) 
 				}
 			}
 		}
+		diag.NewDE(INFO, fmt.Sprintf("process %s finished in %d ms", s.name, s.elapsedTime))
 	}()
 
 	beginning := time.Now().UnixMilli()
@@ -117,7 +118,6 @@ func (s *stage) executeOnce(p *Pipeline, diag *Diagnostic, ctx context.Context) 
 	end := time.Now().UnixMilli()
 	s.elapsedTime = end - beginning
 
-	diag.NewDE(INFO, fmt.Sprintf("process %s finished in %d ms", s.name, s.elapsedTime))
 	return lastErr
 }
 

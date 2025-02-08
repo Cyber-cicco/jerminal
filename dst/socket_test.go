@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"math/rand"
 	"net"
-	"strconv"
 	"testing"
 	"time"
 
@@ -24,7 +23,6 @@ const (
 func randBytes(src *rand.Rand, t *testing.T) []byte {
 	newSeed := rand.New(rand.NewSource(src.Int63()))
 	maxLen := src.Intn(10000)
-	t.Logf("seed for this run : %v", newSeed)
 	bytes := make([]byte, maxLen)
 	for i := 0; i < maxLen; i++ {
 		bytes = append(bytes, byte(newSeed.Intn(256)))
@@ -38,19 +36,17 @@ func readFullResponse(conn net.Conn) ([]byte, error) {
 	scanner.Split(rpc.SplitFunc)
 	scanner.Scan()
 	msg := scanner.Bytes()
-	req, content, err := rpc.DecodeMessage[rpc.JRPCResponse](msg)
-    if err != nil {
-        return nil, err
-    }
-    fmt.Printf("req: %v\n", req)
+	_, content, err := rpc.DecodeMessage[rpc.JRPCResponse](msg)
+	if err != nil {
+		fmt.Printf("req: %v\n", string(content))
+		return nil, err
+	}
 	return content, nil
 }
 
 func randomMap(src *rand.Rand, t *testing.T) map[string]any {
-	newSeed := rand.New(rand.NewSource(src.Int63()))
-	maxLen := src.Intn(500)
+	maxLen := src.Intn(50)
 	randomMap := make(map[string]any, maxLen)
-	t.Logf("seed for this run %v", newSeed)
 	for i := 0; i < maxLen; i++ {
 		paramType := randType(src)
 		switch paramType {
@@ -74,7 +70,7 @@ func randBool(src *rand.Rand) bool {
 }
 
 func randString(src *rand.Rand) string {
-	strLen := src.Intn(200)
+	strLen := src.Intn(50)
 	bytes := make([]byte, strLen)
 	src.Read(bytes)
 	return string(bytes)
@@ -93,57 +89,67 @@ func TestSocketsProcesses(t *testing.T) {
 		Agent("dst"),
 		// Test to see if random payloads produce unexpected results
 		Stages("chaos_monkey",
+			// See if I can crash the server with random bytes
 			Stage("random_bullshit_go",
 				Exec(func(p *Pipeline, ctx context.Context) error {
-					conn, err := net.Dial("unix", "/tmp/pipeline-control.sock")
-					if err != nil {
-						panic(err)
-					}
-					defer conn.Close()
-					bytes := randBytes(src, t)
-					_, err = conn.Write(bytes)
-					if err != nil {
-						return err
-					}
+					for i := 0; i < 1000; i++ {
+						conn, err := net.Dial("unix", "/tmp/pipeline-control.sock")
+						if err != nil {
+							t.Fatalf("unexpected error %v", err)
+							panic(err)
+						}
+						defer conn.Close()
+						bytes := randBytes(src, t)
+						_, err = conn.Write(bytes)
 
+						if err != nil {
+							t.Fatalf("unexpected error %v", err)
+							return err
+						}
+
+					}
 					return nil
 				}),
 			),
+			// See if it can handle every type of payloads, even invalid json
 			Stage("random_payload_go",
 				Exec(func(p *Pipeline, ctx context.Context) error {
-					conn, err := net.Dial("unix", "/tmp/pipeline-control.sock")
-					if err != nil {
-						panic(err)
-					}
-					defer conn.Close()
-					bytes := []byte("Content-Length: ")
-					req := rpc.JRPCRequest{
-						JsonRpcVersion: "2.0",
-						Id:             0,
-						Method:         "pipeline-cancelation",
-					}
-					params := rpc.CustomJRPCRequest{
-						JRPCRequest: req,
-						Params:      randomMap(src, t),
-					}
-					json, err := json.Marshal(params)
-					if err != nil {
-						return err
-					}
-					length := len(json)
-					bytes = append(bytes, []byte(strconv.Itoa(length)+"\r\n\r\n")...)
-					bytes = append(bytes, json...)
-					_, err = conn.Write(bytes)
-					if err != nil {
-						return err
-					}
+					for i := 0; i < 1000; i++ {
+						conn, err := net.Dial("unix", "/tmp/pipeline-control.sock")
+						if err != nil {
+							panic(err)
+						}
+						defer conn.Close()
+						req := rpc.JRPCRequest{
+							JsonRpcVersion: "2.0",
+							Id:             0,
+							Method:         "pipeline-cancelation",
+						}
+						params := rpc.CustomJRPCRequest{
+							JRPCRequest: req,
+							Params:      randomMap(src, t),
+						}
+						json, err := json.Marshal(params)
+						if err != nil {
+							t.Fatalf("unexpected error %v", err)
+							return err
+						}
+						bytes := rpc.JRPCRes(json)
+						fmt.Printf("payload :\n%v\n", string(bytes))
+						_, err = conn.Write(bytes)
+						if err != nil {
+							t.Fatalf("unexpected error %v", err)
+							return err
+						}
 
-					// Read and handle response
-					response, err := readFullResponse(conn)
-					if err != nil {
-						return fmt.Errorf("failed to read response: %v", err)
+						// Read and handle response
+						response, err := readFullResponse(conn)
+						if err != nil {
+							t.Fatalf("unexpected error %v", err)
+							return fmt.Errorf("failed to read response: %v", err)
+						}
+						fmt.Printf("response: %v\n", string(response))
 					}
-					fmt.Printf("response: %v\n", response)
 
 					return nil
 				}),
@@ -161,5 +167,4 @@ func TestSocketsProcesses(t *testing.T) {
 		p.Diagnostic.Log()
 		t.Fatalf("Pipeline got error")
 	}
-    t.Fatalf("test")
 }

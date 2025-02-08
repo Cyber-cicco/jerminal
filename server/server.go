@@ -56,45 +56,44 @@ func New(port uint16) *Server {
 //
 // This would give an interface for other local programs to interact with the process.
 func (s *Server) listenSockets() {
-	for {
-		conn, err := s.listener.Accept()
+	for true {
+		c, err := s.listener.Accept()
 		if err != nil {
 			fmt.Printf("Failed to accept connection: %v\n", err)
 			continue
 		}
 
-		go func(c net.Conn) {
-			defer c.Close()
+		defer c.Close()
 
-			scanner := bufio.NewScanner(c)
-			scanner.Split(rpc.SplitFunc)
-			for scanner.Scan() {
-				fmt.Printf("Message scanned")
-				msg := scanner.Bytes()
-				req, content, err := rpc.DecodeMessage[rpc.JRPCRequest](msg)
+		scanner := bufio.NewScanner(c)
+		scanner.Split(rpc.SplitFunc)
+		for scanner.Scan() {
+			fmt.Printf("Message scanned")
+			msg := scanner.Bytes()
+			req, content, err := rpc.DecodeMessage[rpc.JRPCRequest](msg)
+			if err != nil {
+				bytes := marshallError()
+				_, err = c.Write(rpc.JRPCRes(bytes))
 				if err != nil {
-					fmt.Printf("Error encountered : %s", err)
-					continue
+					fmt.Println("Could not write to unix socket")
+					panic(err)
 				}
-				res, err := s.handleMessage(req, content)
-				if err != nil {
-					fmt.Printf("Could not marshall struct: %v\n", err)
-				}
-                _, err = c.Write(rpc.JRPCRes(res))
-                if err != nil {
-                    fmt.Println("Could not write to unix socket")
-                    panic(err)
-                }
+				continue
 			}
-
-		}(conn)
+			res := s.handleMessage(req, content)
+			_, err = c.Write(rpc.JRPCRes(res))
+			if err != nil {
+				fmt.Println("Could not write to unix socket")
+				panic(err)
+			}
+		}
 	}
 }
 
 // Puts the pipelines in the server
 func (s *Server) SetPipelines(pipelines []*pipeline.Pipeline) {
-    s.store.Lock()
-    defer s.store.Unlock()
+	s.store.Lock()
+	defer s.store.Unlock()
 	for _, p := range pipelines {
 		s.store.GlobalPipelines[p.Name] = p
 	}

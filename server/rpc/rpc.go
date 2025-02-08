@@ -166,7 +166,7 @@ func NewResult[T any](reqId int, value T) JRPCSuccess[T] {
 func JRPCRes(bytes []byte) []byte {
 	res := []byte("Content-Length: ")
 	length := len(bytes)
-    res = append(res, []byte(strconv.Itoa(length)+"\r\n\r\n")...)
-    res = append(res, bytes...)
-    return res
+	res = append(res, []byte(strconv.Itoa(length)+"\r\n\r\n")...)
+	res = append(res, bytes...)
+	return res
 }

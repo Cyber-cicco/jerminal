@@ -26,9 +26,7 @@ FULL_MESSAGE="$HEADER$JSON_PAYLOAD"
 echo -ne "$FULL_MESSAGE" | socat - UNIX-CONNECT:/tmp/pipeline-control.sock
 
 # Check for command success
-if [ $? -eq 0 ]; then
-  echo "Get request for pipeline $PIPELINE_ID sent successfully."
-else
+if [ $? -ne 0 ]; then
   echo "Failed to send get request. Ensure 'socat' is installed and the server is running."
   exit 1
 fi

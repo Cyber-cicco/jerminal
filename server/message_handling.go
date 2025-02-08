@@ -8,10 +8,11 @@ import (
 
 	"github.com/Cyber-cicco/jerminal/pipeline"
 	"github.com/Cyber-cicco/jerminal/server/rpc"
+	"github.com/Cyber-cicco/jerminal/utils"
 )
 
 // handleMessage checks for the message type and calls the appropriate function
-func (s *Server) handleMessage(req *rpc.JRPCRequest, content []byte) ([]byte, error) {
+func (s *Server) handleMessage(req *rpc.JRPCRequest, content []byte) []byte {
 	switch req.Method {
 
 	case "pipeline-cancelation":
@@ -26,51 +27,59 @@ func (s *Server) handleMessage(req *rpc.JRPCRequest, content []byte) ([]byte, er
 			Code:    rpc.METHOD_NOT_FOUND,
 			Message: fmt.Sprintf("Method %s is not supported", req.Method),
 		})
-		bytes, err := json.Marshal(res)
-		return bytes, err
+		return utils.MarshallOrCrash(res)
 	}
 }
 
-func (s *Server) cancelPipeline(req *rpc.JRPCRequest, content []byte) ([]byte, error) {
+func (s *Server) cancelPipeline(req *rpc.JRPCRequest, content []byte) []byte {
 	var cancelParams rpc.CancelationReq
 	err := json.Unmarshal(content, &cancelParams)
 	if err != nil {
-		return unMarshalError(req)
+		return paramsError(req)
 	}
 	err = s.cancelPipelineByLabel(cancelParams)
 	if err != nil {
 		return invalidParamsError(req, err)
 	}
 	res := rpc.NewResult(req.Id, "cancelation succeeded")
-	return json.Marshal(res)
-}
-
-func (s *Server) startPipeline(req *rpc.JRPCRequest, content []byte) ([]byte, error) {
-    var innerReq rpc.StartPipelineReq
-    err := json.Unmarshal(content, &innerReq)
-    if err != nil {
-        return unMarshalError(req)
-    }
-    err = s.BeginPipeline(innerReq.Params.Name)
+	bytes, err := json.Marshal(res)
     
     if err != nil {
-        return invalidParamsError(req, err)
+        panic(err)
     }
-    res := rpc.JRPCSuccess[rpc.SimpleMessage]{
-    	JRPCResponse: rpc.JRPCResponse{
-    		RPC: "2.0",
-    		ID:  &req.Id,
-    	},
-    	Value:        rpc.SimpleMessage{
-    		Message: fmt.Sprintf("Pipeline %s started successfully", innerReq.Params.Name),
-    	},
+	return bytes
+}
+
+func (s *Server) startPipeline(req *rpc.JRPCRequest, content []byte) []byte {
+	var innerReq rpc.StartPipelineReq
+	err := json.Unmarshal(content, &innerReq)
+	if err != nil {
+		return paramsError(req)
+	}
+	err = s.BeginPipeline(innerReq.Params.Name)
+
+	if err != nil {
+		return invalidParamsError(req, err)
+	}
+	res := rpc.JRPCSuccess[rpc.SimpleMessage]{
+		JRPCResponse: rpc.JRPCResponse{
+			RPC: "2.0",
+			ID:  &req.Id,
+		},
+		Value: rpc.SimpleMessage{
+			Message: fmt.Sprintf("Pipeline %s started successfully", innerReq.Params.Name),
+		},
+	}
+    bytes, err := json.Marshal(res)
+    if err != nil {
+        panic(err)
     }
-    return json.Marshal(res)
+	return bytes
 }
 
 // listExistingPipelines gets back one pipeline based on it's id, or, if the
 // id is not present, a set of pipelines
-func (s *Server) listExistingPipelines(req *rpc.JRPCRequest, content []byte) ([]byte, error) {
+func (s *Server) listExistingPipelines(req *rpc.JRPCRequest, content []byte) []byte {
 
 	s.store.Lock()
 	defer s.store.Unlock()
@@ -78,7 +87,7 @@ func (s *Server) listExistingPipelines(req *rpc.JRPCRequest, content []byte) ([]
 	var params rpc.GetPipelinesReq
 	err := json.Unmarshal(content, &params)
 	if err != nil {
-		return unMarshalError(req)
+		return paramsError(req)
 	}
 
 	pipelineMap := s.getMapBasedOnActive(params.Params.Active)
@@ -91,7 +100,7 @@ func (s *Server) listExistingPipelines(req *rpc.JRPCRequest, content []byte) ([]
 		}
 
 		res.Value = pipeline
-		return json.Marshal(res)
+		return utils.MarshallOrCrash(res)
 	}
 
 	pipelines := make([]*pipeline.Pipeline, len(pipelineMap))
@@ -101,7 +110,7 @@ func (s *Server) listExistingPipelines(req *rpc.JRPCRequest, content []byte) ([]
 		i++
 	}
 
-	return json.Marshal(pipelines)
+	return utils.MarshallOrCrash(pipelines)
 }
 
 func (s *Server) getMapBasedOnActive(active bool) map[string]*pipeline.Pipeline {
@@ -114,6 +123,9 @@ func (s *Server) getMapBasedOnActive(active bool) map[string]*pipeline.Pipeline 
 // Cancel a specific pipeline by its label
 func (s *Server) cancelPipelineByLabel(cancelParams rpc.CancelationReq) error {
 	fmt.Println("Cancelling the pipeline")
+	if cancelParams.Params.PipelineId == "" {
+		return errors.New("ID must be given")
+	}
 	fn, ok := s.activePipelines.Load(cancelParams.Params.PipelineId)
 	if !ok {
 		return errors.New("Pipeline not found")
@@ -124,34 +136,55 @@ func (s *Server) cancelPipelineByLabel(cancelParams rpc.CancelationReq) error {
 	return nil
 }
 
-// unMarshalError is an helper function to signify the client that
+// paramsError is an helper function to signify the client that
 // his request was not formatted properly
-func unMarshalError(req *rpc.JRPCRequest) ([]byte, error) {
+func paramsError(req *rpc.JRPCRequest) []byte {
 	res := rpc.NewError(&req.Id, rpc.ErrorData{
 		Code:    rpc.INVALID_PARAMS,
-		Message: "Parmas could not be parsed",
+		Message: "Params could not be parsed",
 		Data:    nil,
 	})
 	bytes, err := json.Marshal(res)
-	return bytes, err
+	if err != nil {
+		panic(err)
+	}
+	return bytes
+}
+
+// marshallError is an helper function to signify the client
+// that the body of the request is invalid JSON
+func marshallError() []byte {
+	res := rpc.NewError(nil, rpc.ErrorData{
+		Code:    rpc.PARSE_ERROR,
+		Message: "Client sent invalid JSON",
+		Data:    nil,
+	})
+	bytes, err := json.Marshal(res)
+	if err != nil {
+		panic(err)
+	}
+	return bytes
 }
 
 // invalidParamsError is an helper function to signify the client
 // has sent invalid data to the server
-func invalidParamsError(req *rpc.JRPCRequest, err error) ([]byte, error) {
+func invalidParamsError(req *rpc.JRPCRequest, err error) []byte {
 	res := rpc.NewError(&req.Id, rpc.ErrorData{
 		Code:    rpc.INVALID_PARAMS,
 		Message: err.Error(),
 		Data:    nil,
 	})
 	bytes, err := json.Marshal(res)
-	return bytes, err
+	if err != nil {
+		panic(err)
+	}
+	return bytes
 }
 
 // BeginPipeline starts a pipeline cloned from the original one.
 // Weird choice, should two of the same pipelines be able to
 // execute simultaneously ?
-// TODO : figure it out. If we decide to allow it, there will be 
+// TODO : figure it out. If we decide to allow it, there will be
 // problems with how agents are handled
 // If we accept this, AnyAgent must set the agent of the pipeline
 // at runtime
@@ -165,7 +198,7 @@ func (s *Server) BeginPipeline(id string) error {
 		return errors.New("Wrong id received")
 	}
 
-    // Get a shallow copy of the pipeline
+	// Get a shallow copy of the pipeline
 	clone := pipeline.Clone()
 	ctx, cancelPipeline := context.WithCancel(context.Background())
 	s.activePipelines.Store(clone.GetId(), cancelPipeline)
@@ -191,5 +224,5 @@ func (s *Server) BeginPipeline(id string) error {
 			delete(s.store.ActivePipelines, clone.GetId())
 		}
 	}()
-    return nil
+	return nil
 }
