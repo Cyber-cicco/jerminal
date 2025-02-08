@@ -24,6 +24,11 @@ type JRPCRequest struct {
 	//Param
 }
 
+type CustomJRPCRequest struct {
+	JRPCRequest
+	Params map[string]any
+}
+
 // Response sent by the server to the client after receiving
 // a JRPCRequest
 type JRPCResponse struct {
@@ -74,8 +79,8 @@ type GetPipelinesReq struct {
 }
 
 type StartPipelineReq struct {
-    JRPCRequest
-    Params StartPipelineParams
+	JRPCRequest
+	Params StartPipelineParams
 }
 
 type StartPipelineParams struct {
@@ -83,10 +88,8 @@ type StartPipelineParams struct {
 }
 
 type SimpleMessage struct {
-    Message string `json:"message"`
+	Message string `json:"message"`
 }
-
-
 
 type TerminationReq struct {
 }
@@ -158,4 +161,12 @@ func NewResult[T any](reqId int, value T) JRPCSuccess[T] {
 		},
 		Value: value,
 	}
+}
+
+func JRPCRes(bytes []byte) []byte {
+	res := []byte("Content-Length: ")
+	length := len(bytes)
+    res = append(res, []byte(strconv.Itoa(length)+"\r\n\r\n")...)
+    res = append(res, bytes...)
+    return res
 }

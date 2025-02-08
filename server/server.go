@@ -80,7 +80,7 @@ func (s *Server) listenSockets() {
 				if err != nil {
 					fmt.Printf("Could not marshall struct: %v\n", err)
 				}
-                _, err = c.Write(res)
+                _, err = c.Write(rpc.JRPCRes(res))
                 if err != nil {
                     fmt.Println("Could not write to unix socket")
                     panic(err)
