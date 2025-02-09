@@ -3,7 +3,6 @@ package pipeline
 import (
 	"context"
 	"errors"
-	"path/filepath"
 
 	"github.com/Cyber-cicco/jerminal/utils"
 )
@@ -39,8 +38,6 @@ func RunOnce(executables ...executable) *onceRunner {
 
 // ExecuteInPipeline runs all executables in a OnceRunner.
 func (o *onceRunner) ExecuteInPipeline(p *Pipeline, ctx context.Context) error {
-
-	pipelinePath := filepath.Join(p.globalState.PipelineDir, p.Id.String())
 	empty, err := utils.IsDirEmpty(p.directory)
 
 	if err != nil {
@@ -71,7 +68,7 @@ func (o *onceRunner) ExecuteInPipeline(p *Pipeline, ctx context.Context) error {
 		}
 	}
 
-	err = utils.CopyDir(p.directory, pipelinePath)
+	err = utils.CopyDir(p.directory, p.pipelineDir)
 
 	if err != nil {
 		return err

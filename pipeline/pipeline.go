@@ -2,6 +2,7 @@ package pipeline
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -23,6 +24,7 @@ type Pipeline struct {
 	Id            uuid.UUID                   `json:"id"` // UUID
 	CloneFrom     *uuid.UUID                  `json:"parent,omitempty"`
 	TimeRan       uint32                      `json:"time-ran"` // Number of time the pipeline ran
+	pipelineDir   string                      // Directory to cache things for subsequent runs of the pipeline
 	events        []pipelineEvents            // components to be executed
 	Inerror       bool                        `json:"in-error"` // Indicate if a fatal error has been encountered
 	globalState   *config.GlobalStateProvider // L'état de l'application
@@ -60,6 +62,9 @@ func (p *Pipeline) ExecutePipeline(ctx context.Context) error {
 		lastErr = err
 		p.ElapsedTime = time.Now().UnixMilli() - p.StartTime.UnixMilli()
 		diag.NewDE(INFO, fmt.Sprintf("Pipeline finished in %d ms", p.ElapsedTime))
+		if !p.Inerror {
+			p.RanSuccessfully()
+		}
 		p.Report.Report(p)
 	}()
 
@@ -75,18 +80,16 @@ func (p *Pipeline) ExecutePipeline(ctx context.Context) error {
 	p.mainDirectory = path
 	p.directory = p.mainDirectory
 
-	pipePath := filepath.Join(p.globalState.PipelineDir, p.CloneFrom.String())
-
-	_, err = os.Stat(pipePath)
+	_, err = os.Stat(p.pipelineDir)
 
 	// Create the directory for the pipeline if it does not yet exist
 	if err != nil {
-		err := os.MkdirAll(pipePath, os.ModePerm)
+		err := os.MkdirAll(p.pipelineDir, os.ModePerm)
 		if err != nil {
 			return err
 		}
 	} else {
-		err := utils.CopyDir(pipePath, p.mainDirectory)
+		err := utils.CopyDir(p.pipelineDir, p.mainDirectory)
 		if err != nil {
 			return err
 		}
@@ -113,6 +116,14 @@ func (p *Pipeline) ExecutePipeline(ctx context.Context) error {
 	}
 	diag.NewDE(DEBUG, "End of execution")
 	return lastErr
+}
+
+func (p *Pipeline) RanSuccessfully() {
+	parent, ok := GetStore().GlobalPipelines[p.Name]
+	if !ok {
+		panic(errors.New("Should exist"))
+	}
+	parent.TimeRan++
 }
 
 // ReportJson tells the pipeline to create a JSON file of
@@ -187,6 +198,7 @@ func setPipelineWithState(name string, agentProvider AgentProvider, config *conf
 			LogLevel: INFO,
 		},
 	}
+    p.pipelineDir = filepath.Join(p.globalState.PipelineDir, p.GetId()) 
 	return &p
 }
 func (p *Pipeline) ResetDiag() {

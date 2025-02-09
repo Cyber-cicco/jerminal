@@ -26,12 +26,15 @@ func main() {
 	)
 	p1, err := SetPipeline("test1",
 		AnyAgent(),
+		RunOnce(
+			SH("touch", "mytralala"),
+		),
 		Stages("test_stages",
 			Stage("test_stage_1",
 				SH("touch", "/home/hijokaidan/PC/jerminal/test_1.txt"),
 			),
 			Stage("test",
-                Exec(func(p *Pipeline, ctx context.Context) error {
+				Exec(func(p *Pipeline, ctx context.Context) error {
 					if i < 2 {
 						i++
 						return errors.New("test error")
@@ -65,7 +68,7 @@ func main() {
 		),
 		standardPost,
 	)
-    p2.ReportJson()
+	p2.ReportJson()
 	p3, err := SetPipeline("test3", // 1 diag event for the start
 		AnyAgent(),
 		Stages("stages_1", // 1 diag for the stages
@@ -82,58 +85,58 @@ func main() {
 		), // 1 diag at the end
 	)
 	p3.ReportJson()
-	p4, err := SetPipeline("test4", 
+	p4, err := SetPipeline("test4",
 		AnyAgent(),
-		Stages("stages_1", 
-			Stage("stage_1", 
-                Exec(func(p *Pipeline, ctx context.Context) error {
-                    time.Sleep(time.Second * 5)
-                    return nil
-                }),
-                Exec(func(p *Pipeline, ctx context.Context) error {
-                    time.Sleep(time.Second * 5)
-                    return nil
-                }),
-                Exec(func(p *Pipeline, ctx context.Context) error {
-                    time.Sleep(time.Second * 5)
-                    return nil
-                }),
-                Exec(func(p *Pipeline, ctx context.Context) error {
-                    time.Sleep(time.Second * 5)
-                    return nil
-                }),
-                Exec(func(p *Pipeline, ctx context.Context) error {
-                    time.Sleep(time.Second * 5)
-                    return nil
-                }),
-			), 
-		), 
-		Stages("stages_2", 
-			Stage("stage_1", 
-                Exec(func(p *Pipeline, ctx context.Context) error {
-                    time.Sleep(time.Second * 5)
-                    return nil
-                }),
-			), 
-		), 
-		Stages("stages_3", 
-			Stage("stage_1", 
-                Exec(func(p *Pipeline, ctx context.Context) error {
-                    time.Sleep(time.Second * 5)
-                    return nil
-                }),
-			), 
-		), 
-		Stages("stages_4", 
-			Stage("stage_1", 
-                Exec(func(p *Pipeline, ctx context.Context) error {
-                    time.Sleep(time.Second * 5)
-                    return nil
-                }),
-			), 
-		), 
+		Stages("stages_1",
+			Stage("stage_1",
+				Exec(func(p *Pipeline, ctx context.Context) error {
+					time.Sleep(time.Second * 5)
+					return nil
+				}),
+				Exec(func(p *Pipeline, ctx context.Context) error {
+					time.Sleep(time.Second * 5)
+					return nil
+				}),
+				Exec(func(p *Pipeline, ctx context.Context) error {
+					time.Sleep(time.Second * 5)
+					return nil
+				}),
+				Exec(func(p *Pipeline, ctx context.Context) error {
+					time.Sleep(time.Second * 5)
+					return nil
+				}),
+				Exec(func(p *Pipeline, ctx context.Context) error {
+					time.Sleep(time.Second * 5)
+					return nil
+				}),
+			),
+		),
+		Stages("stages_2",
+			Stage("stage_1",
+				Exec(func(p *Pipeline, ctx context.Context) error {
+					time.Sleep(time.Second * 5)
+					return nil
+				}),
+			),
+		),
+		Stages("stages_3",
+			Stage("stage_1",
+				Exec(func(p *Pipeline, ctx context.Context) error {
+					time.Sleep(time.Second * 5)
+					return nil
+				}),
+			),
+		),
+		Stages("stages_4",
+			Stage("stage_1",
+				Exec(func(p *Pipeline, ctx context.Context) error {
+					time.Sleep(time.Second * 5)
+					return nil
+				}),
+			),
+		),
 	)
-    p4.ReportJson()
+	p4.ReportJson()
 	if err != nil {
 		panic(err)
 	}

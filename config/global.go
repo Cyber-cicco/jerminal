@@ -126,7 +126,6 @@ func (a *Agent) Initialize() (string, error) {
 
 	// Create the agent directory
 	path := path.Join(a.State.AgentDir, a.Identifier)
-    fmt.Printf("path: %v\n", path)
 	infos, err := os.Stat(path)
 	if err == nil {
 		return "", errors.New(fmt.Sprintf("directory should not exist, agent has not cleaned up his directory from previous job. %s", infos.Name()))
@@ -143,7 +142,6 @@ func (a *Agent) CleanUp() error {
     fmt.Println("Cleaning up")
 
 	path := path.Join(a.State.AgentDir, a.Identifier)
-    fmt.Printf("path: %v\n", path)
 	err := os.RemoveAll(path)
 	if err != nil {
 		return err
