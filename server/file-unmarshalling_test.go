@@ -25,7 +25,7 @@ func TestUnmarshall(t *testing.T) {
 			OmittedFields: []string{"id"},
 		},
 	}
-    res, err := unMarshallFileFromReq(req, "../reports/test3", *req.Params.PipelineId)
+    res, err := unMarshallFileFromReq(&req, "../reports/test3", *req.Params.PipelineId)
     if err != nil {
         t.Fatalf("Expected no error got %v", err)
     }

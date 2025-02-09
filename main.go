@@ -65,6 +65,7 @@ func main() {
 		),
 		standardPost,
 	)
+    p2.ReportJson()
 	p3, err := SetPipeline("test3", // 1 diag event for the start
 		AnyAgent(),
 		Stages("stages_1", // 1 diag for the stages
@@ -132,6 +133,7 @@ func main() {
 			), 
 		), 
 	)
+    p4.ReportJson()
 	if err != nil {
 		panic(err)
 	}

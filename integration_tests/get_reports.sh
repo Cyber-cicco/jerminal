@@ -1,15 +1,13 @@
 #!/bin/bash
 
-# TODO : faire une mini app où on peut configurer nos propres requêtes JSON
-# Se baser sur neovim pour l'autocompletion ?
-# Generate the JSON-RPC cancellation request
 JSON_PAYLOAD=$(cat <<EOF
 {
     "jsonprc": "2.0",
     "id": 1,
-    "method": "launch-pipeline",
+    "method": "get-reports",
     "params": {
-        "name": "$1"
+        "pipeline-name": "$1",
+        "type": "json"
      }
 }
 EOF
@@ -26,10 +24,7 @@ FULL_MESSAGE="$HEADER$JSON_PAYLOAD"
 echo -ne "$FULL_MESSAGE" | socat - UNIX-CONNECT:/tmp/pipeline-control.sock
 
 # Check for command success
-if [ $? -eq 0 ]; then
-  echo "Get request for pipeline $PIPELINE_ID sent successfully."
-else
+if [ $? -ne 0 ]; then
   echo "Failed to send get request. Ensure 'socat' is installed and the server is running."
   exit 1
 fi
-

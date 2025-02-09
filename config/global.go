@@ -117,13 +117,11 @@ func GetStateCustomConf(conf *Config) *GlobalStateProvider {
 // previous work, then creates the directory it will work in
 func (a *Agent) Initialize() (string, error) {
 	// Wait until the agent is no longer busy
-    fmt.Println("before wait")
 	a.Lock()
 	for a.Busy {
 		a.BusySig.Wait()
 	}
 	a.Busy = true
-    fmt.Println("after wait")
 	a.Unlock()
 
 	// Create the agent directory

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/Cyber-cicco/jerminal/pipeline"
 	"github.com/Cyber-cicco/jerminal/server/rpc"
@@ -264,6 +265,7 @@ func (s *Server) getAllReports(req *rpc.GetReportsReq, dir string) []byte {
 	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
 		// Handle any walk errors
 		if err != nil {
+            fmt.Printf("err: %v\n", err)
 			return err
 		}
 
@@ -273,8 +275,9 @@ func (s *Server) getAllReports(req *rpc.GetReportsReq, dir string) []byte {
 		}
 
 		s.getReportFromId(req, info.Name(), dir)
-		content, err := unMarshallFileFromReq(req, dir, info.Name())
+		content, err := unMarshallFileFromReq(req, dir, strings.TrimSuffix(info.Name(), ".json") )
 		if err != nil {
+            fmt.Printf("err: %v\n", err)
 			return err
 		}
 		maps = append(maps, content)
