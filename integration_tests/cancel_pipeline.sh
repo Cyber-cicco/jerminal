@@ -1,9 +1,7 @@
 #!/bin/bash
 
-# UUID of the pipeline to cancel
+# UUID of the pipeline to cancel. Must be changed when running
 PIPELINE_ID="c4548a16-7400-4291-8593-9929d0301d82"
-# Placeholder secret (adjust if the server expects a specific value)
-PIPELINE_SECRET="dummy-secret"
 
 # Generate the JSON-RPC cancellation request
 JSON_PAYLOAD=$(cat <<EOF

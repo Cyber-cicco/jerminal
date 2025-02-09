@@ -11,6 +11,7 @@ type Config struct {
 	sync.RWMutex                // Can be read and written to by multiple routines, so we should lock it
 	AgentDir             string `json:"agent-dir"`    // Source directory where agents do their work
 	PipelineDir          string `json:"pipeline-dir"` // Source directory where pipelines cache the results of commands that should run once
+	ReportDir            string `json:"report-dir"`
 	JerminalResourcePath string
 	AgentResourcePath    string
 }
@@ -36,4 +37,5 @@ func (c *Config) UpdateConfig() error {
 func (c *Config) setupEnv() {
 	c.AgentDir = os.ExpandEnv(c.AgentDir)
 	c.PipelineDir = os.ExpandEnv(c.PipelineDir)
+    c.ReportDir = os.ExpandEnv(c.ReportDir)
 }

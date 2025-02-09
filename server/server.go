@@ -12,6 +12,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/Cyber-cicco/jerminal/config"
 	"github.com/Cyber-cicco/jerminal/pipeline"
 	"github.com/Cyber-cicco/jerminal/server/rpc"
 )
@@ -21,10 +22,11 @@ const TEST_ENV_VAR = "GITHUB_WEBHOOK_SECRET"
 
 // Server receives the webhook call and executes pipelines
 type Server struct {
-	listener        net.Listener    // Unix socket listener
-	port            uint16          // port to listen to
-	activePipelines sync.Map        // map[string]context.CancelFunc
-	store           *pipeline.Store //keeps track of the project pipelines activity
+	listener        net.Listener                // Unix socket listener
+	port            uint16                      // port to listen to
+	activePipelines sync.Map                    // map[string]context.CancelFunc
+	store           *pipeline.Store             //keeps track of the project pipelines activity
+	config          *config.GlobalStateProvider // constants of the process
 }
 
 // New creates a new server to Listen for incoming webhooks
@@ -43,7 +45,13 @@ func New(port uint16) *Server {
 		fmt.Printf("Failed to create Unix socket: %v\n", err)
 		return server
 	}
+    conf, err := config.GetState()
+    if err != nil {
+        fmt.Printf("Server could not start because of error\n%v\n", err)
+        os.Exit(1)
+    }
 
+    server.config = conf
 	server.listener = listener
 
 	// Start socket listener in goroutine
@@ -83,7 +91,7 @@ func (s *Server) listenSockets() {
 			_, err = c.Write(rpc.JRPCRes(res))
 			if err != nil {
 				fmt.Println("Could not write to unix socket")
-                continue
+				continue
 			}
 		}
 	}

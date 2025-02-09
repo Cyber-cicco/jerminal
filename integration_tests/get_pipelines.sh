@@ -9,7 +9,8 @@ JSON_PAYLOAD=$(cat <<EOF
     "id": 1,
     "method": "list-existing-pipelines",
     "params": {
-        "active": false
+        "active": true,
+        "all": true
       }
 }
 EOF

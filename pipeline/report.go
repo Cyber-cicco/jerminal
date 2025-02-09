@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+
 )
 
 type ReportType uint8
@@ -17,9 +18,8 @@ const (
 
 // Allows for creating reports in specified format
 type Report struct {
-	Types     []ReportType
-	LogLevel  DEImp
-	Directory string
+	Types     []ReportType `json:"types"`
+	LogLevel  DEImp        `json:"-"`
 }
 
 func (r *Report) Report(p *Pipeline) error {
@@ -29,7 +29,7 @@ func (r *Report) Report(p *Pipeline) error {
 		switch t {
 
 		case JSON:
-			dirPath := filepath.Join(r.Directory, p.Name)
+			dirPath := filepath.Join(p.globalState.ReportDir, p.Name)
 			_, err := os.Stat(dirPath)
 			if err != nil {
 				err := os.MkdirAll(dirPath, os.ModePerm)
@@ -39,9 +39,9 @@ func (r *Report) Report(p *Pipeline) error {
 					return err
 				}
 			}
-			fileName := fmt.Sprintf("%s-%s.json", p.StartTime.Format(FILE_DATE_TIME_LAYOUT), p.GetId())
-            clone := *p
-            clone.Diagnostic = clone.Diagnostic.FilterBasedOnImportance(r.LogLevel)
+			fileName := p.GetId() + ".json"
+			clone := *p
+			clone.Diagnostic = clone.Diagnostic.FilterBasedOnImportance(r.LogLevel)
 			filePath := filepath.Join(dirPath, fileName)
 			fileContent, err := json.MarshalIndent(
 				clone,

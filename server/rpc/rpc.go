@@ -69,8 +69,9 @@ type CancelationReq struct {
 // ListPipelinesParams list request options to get
 // a json representation of a / multiple pipelines
 type ListPipelinesParams struct {
-	Id     *string // Id if the pipeline to list. If not present, return every pipeline
-	Active bool    // To know if the pipeline to search is a running process
+	Id     *string `json:"id,omitempty"` // Id if the pipeline to list. If not present, return every pipeline
+	Active bool    `json:"active"`       // To know if the pipeline to search is a running process
+	All    bool    `json:"all"`          // tells if we need to see every pipeline
 }
 
 type GetPipelinesReq struct {
@@ -80,11 +81,24 @@ type GetPipelinesReq struct {
 
 type StartPipelineReq struct {
 	JRPCRequest
-	Params StartPipelineParams
+	Params StartPipelineParams `json:"params"`
 }
 
 type StartPipelineParams struct {
 	Name string
+}
+
+type GetReportsReq struct {
+	JRPCRequest
+	Params GetReportsParams
+}
+
+type GetReportsParams struct {
+	PipelineId    *string  `json:"pipeline-id"`    // To specify if you want the reports of a single run of a pipeline
+	PipelineName  *string  `json:"pipeline-name"`  // To specify if you want all the reports of a named pipeline
+	Type          string   `json:"type"`           // Specify the report type
+	Fields        []string `json:"fields"`         // To specify if you only want some fields of the pipeline.
+	OmittedFields []string `json:"omitted-fields"` // To specify if you want every info except one
 }
 
 type SimpleMessage struct {
@@ -142,6 +156,7 @@ func DecodeMessage[T any](msg []byte) (*T, []byte, error) {
 	return &baseMessage, content[:contentLength], nil
 }
 
+// NewError helps build a standardized JRPC error response
 func NewError(reqId *int, err ErrorData) JRPCError {
 
 	return JRPCError{
@@ -153,6 +168,7 @@ func NewError(reqId *int, err ErrorData) JRPCError {
 	}
 }
 
+// NewResult helps build a standardized JRPC success response
 func NewResult[T any](reqId int, value T) JRPCSuccess[T] {
 	return JRPCSuccess[T]{
 		JRPCResponse: JRPCResponse{
@@ -163,6 +179,7 @@ func NewResult[T any](reqId int, value T) JRPCSuccess[T] {
 	}
 }
 
+// JRPCRes allows
 func JRPCRes(bytes []byte) []byte {
 	res := []byte("Content-Length: ")
 	length := len(bytes)

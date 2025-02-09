@@ -1,0 +1,135 @@
+{
+  "agent": {
+    "BusySig": {
+      "L": {}
+    },
+    "identifier": "agent_3",
+    "Busy": false,
+    "State": {
+      "agent-dir": "/home/hijokaidan/.jerminal/agent",
+      "pipeline-dir": "/home/hijokaidan/.jerminal/agent",
+      "report-dir": "",
+      "JerminalResourcePath": "./resources/jerminal.json",
+      "AgentResourcePath": "./resources/agents.json"
+    }
+  },
+  "name": "test3",
+  "id": "2b3534d3-87a8-43c2-abeb-c26292afe6de",
+  "parent": "d9538060-639d-42b3-acaa-36ab03e163e1",
+  "time-ran": 0,
+  "in-error": false,
+  "start-time": "2025-02-09T00:49:20.400818947+01:00",
+  "diagnostics": {
+    "date": "2025-02-09 00:49:20",
+    "label": "test3",
+    "in-error": false,
+    "logs": [
+      {
+        "type": "diagnostic_event",
+        "data": {
+          "description": "starting main loop",
+          "time": "2025-02-09 00:49:20",
+          "name": "test3",
+          "importance": "INFO"
+        }
+      },
+      {
+        "type": "diagnostic",
+        "data": {
+          "date": "2025-02-09 00:49:20",
+          "label": "test3 | stages stages_1",
+          "in-error": false,
+          "logs": [
+            {
+              "type": "diagnostic_event",
+              "data": {
+                "description": "stages stages_1 started",
+                "time": "2025-02-09 00:49:20",
+                "name": "test3 | stages stages_1",
+                "importance": "INFO"
+              }
+            },
+            {
+              "type": "diagnostic",
+              "data": {
+                "date": "2025-02-09 00:49:20",
+                "label": "test3 | stage stage_1",
+                "in-error": false,
+                "logs": [
+                  {
+                    "type": "diagnostic_event",
+                    "data": {
+                      "description": "Stage stage_1 started",
+                      "time": "2025-02-09 00:49:20",
+                      "name": "test3 | stage stage_1",
+                      "importance": "INFO"
+                    }
+                  },
+                  {
+                    "type": "diagnostic_event",
+                    "data": {
+                      "description": "process stage_1 finished in 6 ms",
+                      "time": "2025-02-09 00:49:20",
+                      "name": "test3 | stage stage_1",
+                      "importance": "INFO"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "type": "diagnostic",
+              "data": {
+                "date": "2025-02-09 00:49:20",
+                "label": "test3 | stage stage_2",
+                "in-error": false,
+                "logs": [
+                  {
+                    "type": "diagnostic_event",
+                    "data": {
+                      "description": "Stage stage_2 started",
+                      "time": "2025-02-09 00:49:20",
+                      "name": "test3 | stage stage_2",
+                      "importance": "INFO"
+                    }
+                  },
+                  {
+                    "type": "diagnostic_event",
+                    "data": {
+                      "description": "process stage_2 finished in 5 ms",
+                      "time": "2025-02-09 00:49:20",
+                      "name": "test3 | stage stage_2",
+                      "importance": "INFO"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "type": "diagnostic_event",
+              "data": {
+                "description": "stages stages_1 ended successfully. Took 11 ms",
+                "time": "2025-02-09 00:49:20",
+                "name": "test3 | stages stages_1",
+                "importance": "INFO"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "type": "diagnostic_event",
+        "data": {
+          "description": "Pipeline finished in 12 ms",
+          "time": "2025-02-09 00:49:20",
+          "name": "test3",
+          "importance": "INFO"
+        }
+      }
+    ]
+  },
+  "ElapsedTime": 12,
+  "report-type": {
+    "types": "AA=="
+  }
+}

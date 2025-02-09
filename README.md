@@ -4,15 +4,23 @@
 
 ## What is Jerminal ?
 
-It's Jenkins in the form of a go library with whom you can do everything jenkins does
-by just writing go code, compiling it and running. It's super fast, and allows you
-to do administration of your CI/CD without exposing an endpoint of your server with
-privileged access to a lot of critical resources, by just letting you write your pipeline
-locally and deploy it through SSH.
+Jerminal is a pipeline framework that allow you to describe a pipeline of events you want
+to execute with helper functions. It also provides a set of detailed event logs, and
+a system of agents and schedules with fine grained customization.
+
+But more than this, it also provides a set of out of the box functionnalities, like
+a unix socket server, an integration with github hooks, and a production of reports in JSON files,
+and soon to be MongoDB and SQLITE.
+
+You can use it for all sorts of things: 
+ * CI/CD
+ * Deterministic simulation testing
+ * Load balancing
+
 
 ## Why Jerminal ?
 
-After an intense 2 days of using Jenkins and wanting to `rm -rf / --no-preserve-root` IRL,
+After an intense 2 days of using Jenkins and wanting to `rm -rf / --no-preserve-root` myself IRL,
 I came to the conclusion that a web interface was probably not the best way to do what Jenkins
 is doing.
 

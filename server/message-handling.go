@@ -21,6 +21,8 @@ func (s *Server) handleMessage(req *rpc.JRPCRequest, content []byte) []byte {
 		return s.listExistingPipelines(req, content)
 	case "launch-pipeline":
 		return s.startPipeline(req, content)
+	case "get-reports":
+		return s.getReports(req, content)
 
 	default:
 		res := rpc.NewError(&req.Id, rpc.ErrorData{
@@ -31,6 +33,10 @@ func (s *Server) handleMessage(req *rpc.JRPCRequest, content []byte) []byte {
 	}
 }
 
+// startPipeline cancels a running pipeline based on it's id
+//
+// Handle all errors internally and sends back the appropriate response
+// without the caller needing to handle the state.
 func (s *Server) cancelPipeline(req *rpc.JRPCRequest, content []byte) []byte {
 	var cancelParams rpc.CancelationReq
 	err := json.Unmarshal(content, &cancelParams)
@@ -42,14 +48,14 @@ func (s *Server) cancelPipeline(req *rpc.JRPCRequest, content []byte) []byte {
 		return invalidParamsError(req, err)
 	}
 	res := rpc.NewResult(req.Id, "cancelation succeeded")
-	bytes, err := json.Marshal(res)
-    
-    if err != nil {
-        panic(err)
-    }
-	return bytes
+	return utils.MarshallOrCrash(res)
 }
 
+// startPipeline starts a pipeline based on the name provided in the rpc
+// request.
+//
+// Handle all errors internally and sends back the appropriate response
+// without the caller needing to handle the state.
 func (s *Server) startPipeline(req *rpc.JRPCRequest, content []byte) []byte {
 	var innerReq rpc.StartPipelineReq
 	err := json.Unmarshal(content, &innerReq)
@@ -70,11 +76,7 @@ func (s *Server) startPipeline(req *rpc.JRPCRequest, content []byte) []byte {
 			Message: fmt.Sprintf("Pipeline %s started successfully", innerReq.Params.Name),
 		},
 	}
-    bytes, err := json.Marshal(res)
-    if err != nil {
-        panic(err)
-    }
-	return bytes
+	return utils.MarshallOrCrash(res)
 }
 
 // listExistingPipelines gets back one pipeline based on it's id, or, if the
@@ -103,14 +105,18 @@ func (s *Server) listExistingPipelines(req *rpc.JRPCRequest, content []byte) []b
 		return utils.MarshallOrCrash(res)
 	}
 
-	pipelines := make([]*pipeline.Pipeline, len(pipelineMap))
-	i := 0
-	for _, v := range pipelineMap {
-		pipelines[i] = v
-		i++
-	}
+	if params.Params.All {
+		pipelines := make([]*pipeline.Pipeline, len(pipelineMap))
+		i := 0
+		for _, v := range pipelineMap {
+			pipelines[i] = v
+			i++
+		}
 
-	return utils.MarshallOrCrash(pipelines)
+		return utils.MarshallOrCrash(pipelines)
+	}
+	return invalidParamsError(req, errors.New("Invalid format for pipeline start request"))
+
 }
 
 func (s *Server) getMapBasedOnActive(active bool) map[string]*pipeline.Pipeline {
@@ -144,11 +150,7 @@ func paramsError(req *rpc.JRPCRequest) []byte {
 		Message: "Params could not be parsed",
 		Data:    nil,
 	})
-	bytes, err := json.Marshal(res)
-	if err != nil {
-		panic(err)
-	}
-	return bytes
+	return utils.MarshallOrCrash(res)
 }
 
 // marshallError is an helper function to signify the client
@@ -159,11 +161,7 @@ func marshallError() []byte {
 		Message: "Client sent invalid JSON",
 		Data:    nil,
 	})
-	bytes, err := json.Marshal(res)
-	if err != nil {
-		panic(err)
-	}
-	return bytes
+	return utils.MarshallOrCrash(res)
 }
 
 // invalidParamsError is an helper function to signify the client
@@ -174,11 +172,7 @@ func invalidParamsError(req *rpc.JRPCRequest, err error) []byte {
 		Message: err.Error(),
 		Data:    nil,
 	})
-	bytes, err := json.Marshal(res)
-	if err != nil {
-		panic(err)
-	}
-	return bytes
+	return utils.MarshallOrCrash(res)
 }
 
 // BeginPipeline starts a pipeline cloned from the original one.
@@ -205,7 +199,6 @@ func (s *Server) BeginPipeline(id string) error {
 
 	go func() {
 
-		defer s.activePipelines.Delete(clone.GetId())
 		defer cancelPipeline()
 
 		s.store.Lock()
@@ -223,6 +216,37 @@ func (s *Server) BeginPipeline(id string) error {
 			}
 			delete(s.store.ActivePipelines, clone.GetId())
 		}
+		s.store.Lock()
+		delete(s.store.ActivePipelines, clone.GetId())
+		s.store.Unlock()
 	}()
 	return nil
 }
+
+func (s *Server) getReports(req *rpc.JRPCRequest, content []byte) []byte {
+	var params rpc.GetReportsReq
+	err := json.Unmarshal(content, &params)
+	if err != nil {
+		return paramsError(req)
+	}
+
+	if params.Params.PipelineName == nil {
+		return paramsError(req)
+	}
+
+	switch params.Params.Type {
+	case "json":
+		return s.getReportsFromJson(&params)
+	default:
+		return paramsError(req)
+	}
+}
+
+func (s *Server) getReportsFromJson(req *rpc.GetReportsReq) []byte {
+    params := req.Params
+    if params.PipelineId != nil {
+
+    }
+    return nil
+}
+

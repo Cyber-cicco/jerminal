@@ -17,7 +17,7 @@ import (
 type Pipeline struct {
 	Agent         *config.Agent               `json:"agent"` // Agent executing the Pipeline
 	agentProvider AgentProvider               // function executed at runtime to provide the Agent to the pipeline
-	Name          string                      // human readable name of the pipeline
+	Name          string                      `json:"name"` // human readable name of the pipeline
 	mainDirectory string                      // Base directory of the pipeline
 	directory     string                      // Working directory for the pipeline.
 	Id            uuid.UUID                   `json:"id"` // UUID
@@ -26,14 +26,14 @@ type Pipeline struct {
 	events        []pipelineEvents            // components to be executed
 	Inerror       bool                        `json:"in-error"` // Indicate if a fatal error has been encountered
 	globalState   *config.GlobalStateProvider // L'état de l'application
-	StartTime     time.Time                   `json:"start-time"`  // Début de la pipeline
-	Diagnostic    *Diagnostic                 `json:"diagnostics"` // Infos about the current process. It can change based on what stage is getting executed.
-	ElapsedTime   int64                       // Time it took to run the Pipeline
+	StartTime     time.Time                   `json:"start-time"`   // Début de la pipeline
+	Diagnostic    *Diagnostic                 `json:"diagnostics"`  // Infos about the current process. It can change based on what stage is getting executed.
+	ElapsedTime   int64                       `json:"elapsed-time"` // Time it took to run the Pipeline
 
 	// Copy of the config that should be initialized at start of
 	// the pipeline so it keeps it's config even if there is a change during the execution
 	Config *config.Config `json:"-"`
-	Report *Report        `json:"-"` // Config that allows to choose a way of logging the results into a file
+	Report *Report        `json:"report-type"` // Config that allows to choose a way of logging the results into a file
 }
 
 // Provides the agent for the pipeline
@@ -122,10 +122,19 @@ func (p *Pipeline) ReportJson() {
 	p.Report.Types = append(p.Report.Types, JSON)
 }
 
+// ReportHTML tells the pipeline to store the content of
+// the reports as HTML files using tailwind 3 for styling
+// and vanilla JS for client side interactivity
+//
+// WARN : NOT YET IMPLEMENTED
 func (p *Pipeline) ReportHTML() {
 	p.Report.Types = append(p.Report.Types, HTML)
 }
 
+// ReportSQLITE tells the pipeline to store the content
+// of the reports in an SQLite database
+//
+// WARN : NOT YET IMPLEMENTED
 func (p *Pipeline) ReportSQLITE() {
 	p.Report.Types = append(p.Report.Types, SQLITE)
 }
@@ -174,9 +183,8 @@ func setPipelineWithState(name string, agentProvider AgentProvider, config *conf
 		TimeRan:       0,
 		globalState:   config,
 		Report: &Report{
-			Types:     []ReportType{},
-			Directory: "./reports",
-			LogLevel:  INFO,
+			Types:    []ReportType{},
+			LogLevel: INFO,
 		},
 	}
 	return &p
