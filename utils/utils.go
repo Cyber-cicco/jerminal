@@ -36,7 +36,7 @@ func IsDirEmpty(dirPath string) (bool, error) {
     return false, err
 }
 
-func MarshallOrCrash(val any) []byte {
+func MustMarshall(val any) []byte {
     bytes, err := json.Marshal(val)
     if err != nil {
         panic(err)

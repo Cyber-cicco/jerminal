@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
 
 	"github.com/Cyber-cicco/jerminal/pipeline"
 	"github.com/Cyber-cicco/jerminal/server/rpc"
@@ -29,7 +31,7 @@ func (s *Server) handleMessage(req *rpc.JRPCRequest, content []byte) []byte {
 			Code:    rpc.METHOD_NOT_FOUND,
 			Message: fmt.Sprintf("Method %s is not supported", req.Method),
 		})
-		return utils.MarshallOrCrash(res)
+		return utils.MustMarshall(res)
 	}
 }
 
@@ -48,7 +50,7 @@ func (s *Server) cancelPipeline(req *rpc.JRPCRequest, content []byte) []byte {
 		return invalidParamsError(req, err)
 	}
 	res := rpc.NewResult(req.Id, "cancelation succeeded")
-	return utils.MarshallOrCrash(res)
+	return utils.MustMarshall(res)
 }
 
 // startPipeline starts a pipeline based on the name provided in the rpc
@@ -76,7 +78,7 @@ func (s *Server) startPipeline(req *rpc.JRPCRequest, content []byte) []byte {
 			Message: fmt.Sprintf("Pipeline %s started successfully", innerReq.Params.Name),
 		},
 	}
-	return utils.MarshallOrCrash(res)
+	return utils.MustMarshall(res)
 }
 
 // listExistingPipelines gets back one pipeline based on it's id, or, if the
@@ -102,7 +104,7 @@ func (s *Server) listExistingPipelines(req *rpc.JRPCRequest, content []byte) []b
 		}
 
 		res.Value = pipeline
-		return utils.MarshallOrCrash(res)
+		return utils.MustMarshall(res)
 	}
 
 	if params.Params.All {
@@ -113,7 +115,7 @@ func (s *Server) listExistingPipelines(req *rpc.JRPCRequest, content []byte) []b
 			i++
 		}
 
-		return utils.MarshallOrCrash(pipelines)
+		return utils.MustMarshall(pipelines)
 	}
 	return invalidParamsError(req, errors.New("Invalid format for pipeline start request"))
 
@@ -150,7 +152,7 @@ func paramsError(req *rpc.JRPCRequest) []byte {
 		Message: "Params could not be parsed",
 		Data:    nil,
 	})
-	return utils.MarshallOrCrash(res)
+	return utils.MustMarshall(res)
 }
 
 // marshallError is an helper function to signify the client
@@ -161,7 +163,7 @@ func marshallError() []byte {
 		Message: "Client sent invalid JSON",
 		Data:    nil,
 	})
-	return utils.MarshallOrCrash(res)
+	return utils.MustMarshall(res)
 }
 
 // invalidParamsError is an helper function to signify the client
@@ -172,7 +174,7 @@ func invalidParamsError(req *rpc.JRPCRequest, err error) []byte {
 		Message: err.Error(),
 		Data:    nil,
 	})
-	return utils.MarshallOrCrash(res)
+	return utils.MustMarshall(res)
 }
 
 // BeginPipeline starts a pipeline cloned from the original one.
@@ -242,11 +244,64 @@ func (s *Server) getReports(req *rpc.JRPCRequest, content []byte) []byte {
 	}
 }
 
+// getReportsFromJson handles the GetReportsReq to get back reports
+// of executions of a pipeline
 func (s *Server) getReportsFromJson(req *rpc.GetReportsReq) []byte {
-    params := req.Params
-    if params.PipelineId != nil {
+	params := req.Params
+	dir := filepath.Join(s.config.ReportDir, *req.Params.PipelineName)
 
-    }
-    return nil
+	if params.PipelineId != nil {
+		return s.getReportFromId(req, *req.Params.PipelineId, dir)
+	}
+    return s.getAllReports(req, dir)
+
 }
 
+// getAllReports finds all the reports in the report directory of the pipeline
+func (s *Server) getAllReports(req *rpc.GetReportsReq, dir string) []byte {
+	maps := []map[string]interface{}{}
+
+	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+		// Handle any walk errors
+		if err != nil {
+			return err
+		}
+
+		// Skip directories
+		if info.IsDir() {
+			return nil
+		}
+
+		s.getReportFromId(req, info.Name(), dir)
+		content, err := unMarshallFileFromReq(req, dir, info.Name())
+		if err != nil {
+			return err
+		}
+		maps = append(maps, content)
+		return nil
+	})
+
+	if err != nil {
+		err := rpc.NewError(&req.Id, rpc.ErrorData{
+			Code:    rpc.INVALID_PARAMS,
+			Message: "File could not be found or is in invalid format",
+		})
+		return utils.MustMarshall(err)
+	}
+
+	return utils.MustMarshall(maps)
+}
+
+// getReportFromId gets back a report from the id provided in the request
+func (s *Server) getReportFromId(req *rpc.GetReportsReq, id, dir string) []byte {
+	content, err := unMarshallFileFromReq(req, id, dir)
+	if err != nil {
+		err := rpc.NewError(&req.Id, rpc.ErrorData{
+			Code:    rpc.INVALID_PARAMS,
+			Message: "File could not be found or is in invalid format",
+		})
+		return utils.MustMarshall(err)
+	}
+	res := rpc.NewResult(req.Id, content)
+	return utils.MustMarshall(res)
+}

@@ -12,7 +12,7 @@ import (
 
 // unMarshallFileFromReq uses a custom unMarshalling process to ommit non
 // wanted fields
-func unMarshallFileFromReq(req rpc.GetReportsReq, directory string, id string) (map[string]interface{}, error) {
+func unMarshallFileFromReq(req *rpc.GetReportsReq, directory string, id string) (map[string]interface{}, error) {
 	if uuid.Validate(id) != nil {
         return nil, errors.New("Invalid identifier")
 	}
