@@ -75,7 +75,7 @@ func (p *Pipeline) ExecutePipeline(ctx context.Context) error {
 	p.mainDirectory = path
 	p.directory = p.mainDirectory
 
-	pipePath := filepath.Join(p.globalState.PipelineDir, p.Id.String())
+	pipePath := filepath.Join(p.globalState.PipelineDir, p.CloneFrom.String())
 
 	_, err = os.Stat(pipePath)
 

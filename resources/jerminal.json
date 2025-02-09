@@ -1,6 +1,6 @@
 {
     "agent-dir": "$HOME/.jerminal/agent",
-    "pipeline-dir": "$HOME/.jerminal/agent",
+    "pipeline-dir": "$HOME/.jerminal/pipeline",
     "report-dir": "./reports",
     "secret": "d7e1eb55-aa5d-484e-bd58-cbc080386956"
 }
