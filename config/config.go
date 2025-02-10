@@ -14,6 +14,7 @@ type Config struct {
 	ReportDir            string `json:"report-dir"`
 	JerminalResourcePath string
 	AgentResourcePath    string
+	GithubWebhookSecret  string `json:"github-webhook-secret"` // pour l'authentification des webhooks github
 }
 
 // UpdateConfig Creates the config object
@@ -37,5 +38,6 @@ func (c *Config) UpdateConfig() error {
 func (c *Config) setupEnv() {
 	c.AgentDir = os.ExpandEnv(c.AgentDir)
 	c.PipelineDir = os.ExpandEnv(c.PipelineDir)
-    c.ReportDir = os.ExpandEnv(c.ReportDir)
+	c.ReportDir = os.ExpandEnv(c.ReportDir)
+    c.GithubWebhookSecret = os.ExpandEnv(c.GithubWebhookSecret)
 }

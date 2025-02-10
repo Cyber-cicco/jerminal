@@ -17,9 +17,6 @@ import (
 	"github.com/Cyber-cicco/jerminal/server/rpc"
 )
 
-// Test variable. Should be replaced with config
-const TEST_ENV_VAR = "GITHUB_WEBHOOK_SECRET"
-
 // Server receives the webhook call and executes pipelines
 type Server struct {
 	listener        net.Listener                // Unix socket listener
@@ -127,9 +124,10 @@ func (s *Server) handleWebhook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO : ADD AUTHENTICATION
-	_, _, err = getBody(r.Body)
+    _, body, err := getBody(r.Body)
 	defer r.Body.Close()
+
+    verifyGithubSignature(s.config.GithubWebhookSecret, r.Header.Get("X-Hub-Signature"), body)
 
 	if err != nil {
 		http.Error(w, "Failed to read request body", http.StatusInternalServerError)
