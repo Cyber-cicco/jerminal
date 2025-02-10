@@ -15,6 +15,7 @@ and soon to be MongoDB and SQLITE.
 You can use it for all sorts of things: 
  * CI/CD
  * Deterministic simulation testing
+ * Integration testing
  * Load balancing
 
 
