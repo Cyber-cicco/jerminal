@@ -19,7 +19,7 @@ const (
 // Allows for creating reports in specified format
 type Report struct {
 	Types     []ReportType `json:"types"`
-	LogLevel  DEImp        `json:"-"`
+	LogLevel  EImportance        `json:"-"`
 }
 
 func (r *Report) Report(p *Pipeline) error {

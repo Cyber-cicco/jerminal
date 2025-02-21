@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	. "github.com/Cyber-cicco/jerminal/pipeline"
@@ -13,11 +14,11 @@ func main() {
 	i := 0
 	standardPost := Post(
 		Success(func(p *Pipeline, ctx context.Context) error {
-			p.Diagnostic.NewDE(INFO, "Job was successfull")
+			p.Diagnostic.LogEvent(INFO, "Job was successfull")
 			return nil
 		}),
 		Failure(func(p *Pipeline, ctx context.Context) error {
-			p.Diagnostic.NewDE(INFO, "Job failed")
+			p.Diagnostic.LogEvent(INFO, "Job failed")
 			return nil
 		}),
 		Always(func(p *Pipeline, ctx context.Context) error {
@@ -27,7 +28,11 @@ func main() {
 	p1, err := SetPipeline("test1",
 		AnyAgent(),
 		RunOnce(
-			SH("touch", "mytralala"),
+			Exec(func(p *Pipeline, ctx context.Context) error {
+                fmt.Println("I'm only ran the first time the pipeline gets executed")
+                p.Diagnostic.LogEvent(INFO, "This is how you can log an event in the main pipeline")
+                return nil
+            }),
 		),
 		Stages("test_stages",
 			Stage("test_stage_1",
@@ -140,7 +145,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	s := server.New(8002)
-	s.SetPipelines([]*Pipeline{p1, p2, p3, p4})
-	s.Listen()
+	s := server.New()
+	s.SetPipelines(p1, p2, p3, p4)
+	s.ListenGithubHooks(8002)
 }

@@ -56,9 +56,9 @@ func SH(name string, args ...string) executable {
 	return Exec(func(p *Pipeline, ctx context.Context) error {
 		cmd := exec.Command(name, args...)
 		cmd.Dir = p.directory
-        p.Diagnostic.NewDE(DEBUG, fmt.Sprintf("Executing command %s", name))
+        p.Diagnostic.LogEvent(DEBUG, fmt.Sprintf("Executing command %s", name))
 		out, err := cmd.CombinedOutput()
-        p.Diagnostic.NewDE(DEBUG, fmt.Sprintf("Got ouput : %s", string(out)))
+        p.Diagnostic.LogEvent(DEBUG, fmt.Sprintf("Got ouput : %s", string(out)))
 		return err
 	})
 }

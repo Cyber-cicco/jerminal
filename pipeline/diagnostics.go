@@ -29,11 +29,11 @@ type DiagnosticEvent struct {
 	Description string `json:"description"` // Description of the event
 	Time        string `json:"time"`        // Time of the event happening
 	Name        string `json:"name"`        // Name to display in the log
-	Importance  DEImp  `json:"importance"`  // Importance of the event
+	Importance  EImportance  `json:"importance"`  // Importance of the event
 }
 
-// NewDE is a helper function to add an event to the diagnostic
-func (d *Diagnostic) NewDE(importance DEImp, description string) {
+// LogEvent is a helper function to add an event to the diagnostic
+func (d *Diagnostic) LogEvent(importance EImportance, description string) {
 	d.Lock()
 	defer d.Unlock()
 	newEvt := &DiagnosticEvent{
@@ -49,7 +49,7 @@ func (d *Diagnostic) NewDE(importance DEImp, description string) {
 // Creates a new diag with a filter based on importance
 //
 // TODO : inefficient, remove cloning, and implement it on a Marshalling level
-func (d *Diagnostic) FilterBasedOnImportance(imp DEImp) *Diagnostic {
+func (d *Diagnostic) FilterBasedOnImportance(imp EImportance) *Diagnostic {
 	newDiag := &Diagnostic{
 		Label:      d.Label,
 		identifier: d.identifier,

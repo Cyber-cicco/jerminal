@@ -20,16 +20,14 @@ import (
 // Server receives the webhook call and executes pipelines
 type Server struct {
 	listener        net.Listener                // Unix socket listener
-	port            uint16                      // port to listen to
 	activePipelines sync.Map                    // map[string]context.CancelFunc
 	store           *pipeline.Store             //keeps track of the project pipelines activity
 	config          *config.GlobalStateProvider // constants of the process
 }
 
 // New creates a new server to Listen for incoming webhooks
-func New(port uint16) *Server {
+func New() *Server {
 	server := &Server{
-		port:  port,
 		store: pipeline.GetStore(),
 	}
 
@@ -95,7 +93,7 @@ func (s *Server) listenSockets() {
 }
 
 // Puts the pipelines in the server
-func (s *Server) SetPipelines(pipelines []*pipeline.Pipeline) {
+func (s *Server) SetPipelines(pipelines ...*pipeline.Pipeline) {
 	s.store.Lock()
 	defer s.store.Unlock()
 	for _, p := range pipelines {
@@ -103,12 +101,12 @@ func (s *Server) SetPipelines(pipelines []*pipeline.Pipeline) {
 	}
 }
 
-// Listen for calls to hook
-func (s *Server) Listen() {
+// ListenGithubHooks for calls to hook
+func (s *Server) ListenGithubHooks(port uint16) {
 	http.Handle("/hook/github/", http.HandlerFunc(s.handleWebhook))
-	if s.port != 0 {
-		fmt.Printf("Listening on port %v\n", s.port)
-		http.ListenAndServe(fmt.Sprintf(":%d", s.port), nil)
+	if port != 0 {
+		fmt.Printf("Listening on port %v\n", port)
+		http.ListenAndServe(fmt.Sprintf(":%d", port), nil)
 		return
 	}
 }

@@ -53,12 +53,12 @@ func (o *onceRunner) ExecuteInPipeline(p *Pipeline, ctx context.Context) error {
 		return nil
 	}
 
-	p.Diagnostic.NewDE(INFO, "Executing pipeline setup for subsequent runs")
+	p.Diagnostic.LogEvent(INFO, "Executing pipeline setup for subsequent runs")
 
 	for _, ex := range o.executables {
 		select {
 		case <-ctx.Done():
-            p.Diagnostic.NewDE(WARN, "Job got canceled before finishing")
+            p.Diagnostic.LogEvent(WARN, "Job got canceled before finishing")
         default:
 			err := ex.Execute(p, ctx)
 			if err != nil {

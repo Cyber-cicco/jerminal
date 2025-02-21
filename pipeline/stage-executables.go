@@ -72,7 +72,7 @@ func (s *stage) ExecuteStage(p *Pipeline, ctx context.Context) error {
 	for true {
 		err = s.simpleExec(p, diag, ctx)
 		if err != nil && i+1 < s.tries {
-			diag.NewDE(WARN, fmt.Sprintf("Task failed for the %d time, retrying in %d seconds", i+1, s.delay))
+			diag.LogEvent(WARN, fmt.Sprintf("Task failed for the %d time, retrying in %d seconds", i+1, s.delay))
 			time.Sleep(time.Duration(s.delay) * time.Second)
 			i++
 			continue
@@ -88,28 +88,28 @@ func (s *stage) simpleExec(p *Pipeline, diag *Diagnostic, ctx context.Context) e
 	defer func() {
 		for i, ex := range s.executors {
 			if ex.deferedFunc != nil {
-				diag.NewDE(DEBUG, "Executing clean up of stage")
+				diag.LogEvent(DEBUG, "Executing clean up of stage")
 				err := ex.deferedFunc.Execute(p, ctx)
 				if err != nil {
-					diag.NewDE(ERROR, fmt.Sprintf("Stage %s got error %v in execution n°%d", s.name, err, i))
+					diag.LogEvent(ERROR, fmt.Sprintf("Stage %s got error %v in execution n°%d", s.name, err, i))
 					lastErr = err
 					return
 				}
 			}
 		}
-		diag.NewDE(INFO, fmt.Sprintf("process %s finished in %d ms", s.name, s.elapsedTime))
+		diag.LogEvent(INFO, fmt.Sprintf("process %s finished in %d ms", s.name, s.elapsedTime))
 	}()
 
 	beginning := time.Now().UnixMilli()
 
-	diag.NewDE(INFO, fmt.Sprintf("Stage %s started", s.name))
+	diag.LogEvent(INFO, fmt.Sprintf("Stage %s started", s.name))
 
 	for i, ex := range s.executors {
 		if ex.ex != nil {
-			diag.NewDE(DEBUG, fmt.Sprintf("executing task n°%d of stage", i))
+			diag.LogEvent(DEBUG, fmt.Sprintf("executing task n°%d of stage", i))
 			err := ex.Execute(p, ctx)
 			if err != nil {
-				diag.NewDE(ERROR, fmt.Sprintf("Stage %s got error %v in execution n°%d", s.name, err, i))
+				diag.LogEvent(ERROR, fmt.Sprintf("Stage %s got error %v in execution n°%d", s.name, err, i))
 				return err
 			}
 		}
@@ -184,7 +184,7 @@ func Cache(dirname string) executable {
 	return Exec(func(p *Pipeline, ctx context.Context) error {
 		targetPath := filepath.Join(p.directory, dirname)
 		cachePath := filepath.Join(p.pipelineDir, dirname)
-		p.Diagnostic.NewDE(INFO, fmt.Sprintf("Caching directory %s", targetPath))
+		p.Diagnostic.LogEvent(INFO, fmt.Sprintf("Caching directory %s", targetPath))
 		_, err := os.Stat(targetPath)
 
 		if err != nil {

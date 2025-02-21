@@ -34,19 +34,19 @@ func (s *stages) ExecuteInPipeline(p *Pipeline, ctx context.Context) error {
 	p.Diagnostic.AddChild(diag)
 	p.Diagnostic = diag
 	beginning := time.Now().UnixMilli()
-	diag.NewDE(INFO, fmt.Sprintf("stages %s started", s.name))
+	diag.LogEvent(INFO, fmt.Sprintf("stages %s started", s.name))
 
 	defer func() {
 		end := time.Now().UnixMilli()
 		elapsedTime := end - beginning
-		diag.NewDE(INFO, fmt.Sprintf("stages %s ended successfully. Took %d ms", s.name, elapsedTime))
+		diag.LogEvent(INFO, fmt.Sprintf("stages %s ended successfully. Took %d ms", s.name, elapsedTime))
 		p.ResetDiag()
 	}()
 
 	// Parallel execution of pipelines
 	// Parallel execution seem to pose a problem with diags in stages
 	if s.parallel {
-		diag.NewDE(DEBUG, "starting parallel tasks")
+		diag.LogEvent(DEBUG, "starting parallel tasks")
 		var wg sync.WaitGroup
 		errchan := make(chan error, len(s.stages))
 		for _, s := range s.stages {
@@ -59,7 +59,7 @@ func (s *stages) ExecuteInPipeline(p *Pipeline, ctx context.Context) error {
 						errchan <- err
 						return
 					}
-					diag.NewDE(WARN, fmt.Sprintf("got non blocking error in stage %s : %v", s.name, err))
+					diag.LogEvent(WARN, fmt.Sprintf("got non blocking error in stage %s : %v", s.name, err))
 				}
 			}(p, s)
 		}
@@ -70,7 +70,7 @@ func (s *stages) ExecuteInPipeline(p *Pipeline, ctx context.Context) error {
 			// returns first error encountered in the channel
 			// maybe change that
 			if err != nil {
-				diag.NewDE(DEBUG, fmt.Sprintf("encountered error in one of the tasks. %v", err))
+				diag.LogEvent(DEBUG, fmt.Sprintf("encountered error in one of the tasks. %v", err))
 				return err
 			}
 		}
@@ -81,7 +81,7 @@ func (s *stages) ExecuteInPipeline(p *Pipeline, ctx context.Context) error {
 	for _, stage := range s.stages {
 		select {
 		case <-ctx.Done():
-			diag.NewDE(WARN, fmt.Sprintf("Stages got canceled before finishing"))
+			diag.LogEvent(WARN, fmt.Sprintf("Stages got canceled before finishing"))
 			return ctx.Err()
 		default:
 			err := stage.ExecuteStage(p, ctx)
@@ -89,7 +89,7 @@ func (s *stages) ExecuteInPipeline(p *Pipeline, ctx context.Context) error {
 				if stage.shouldStopIfError {
 					return err
 				}
-				diag.NewDE(WARN, fmt.Sprintf("got non blocking error in stage %s : %v", s.name, err))
+				diag.LogEvent(WARN, fmt.Sprintf("got non blocking error in stage %s : %v", s.name, err))
 			}
 		}
 	}

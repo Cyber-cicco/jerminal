@@ -6,10 +6,10 @@ import (
 	"fmt"
 )
 
-type DEImp uint8
+type EImportance uint8
 
 const (
-	DEBUG = DEImp(iota)
+	DEBUG = EImportance(iota)
 	INFO
 	WARN
 	ERROR
@@ -18,7 +18,7 @@ const (
 
 
 // MarshalJSON converts DEImp to the corresponding string
-func (imp DEImp) MarshalJSON() ([]byte, error) {
+func (imp EImportance) MarshalJSON() ([]byte, error) {
     if int(imp) < len(IMPORTANCE_STR) {
         return json.Marshal(IMPORTANCE_STR[imp])
     }
@@ -26,13 +26,13 @@ func (imp DEImp) MarshalJSON() ([]byte, error) {
 }
 
 // UnmarshalJSON converts string back to DEImp
-func (imp *DEImp) UnmarshalJSON(data []byte) error {
+func (imp *EImportance) UnmarshalJSON(data []byte) error {
     // First try to unmarshal as string
     var str string
     if err := json.Unmarshal(data, &str); err == nil {
         for i, s := range IMPORTANCE_STR {
             if s == str {
-                *imp = DEImp(i)
+                *imp = EImportance(i)
                 return nil
             }
         }

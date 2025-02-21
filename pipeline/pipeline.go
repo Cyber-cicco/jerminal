@@ -57,11 +57,11 @@ func (p *Pipeline) ExecutePipeline(ctx context.Context) error {
 	defer func() {
 		err := p.Agent.CleanUp()
 		if err != nil {
-			diag.NewDE(CRITICAL, fmt.Sprintf("Agent could not terminate properly because of error %v", err))
+			diag.LogEvent(CRITICAL, fmt.Sprintf("Agent could not terminate properly because of error %v", err))
 		}
 		lastErr = err
 		p.ElapsedTime = time.Now().UnixMilli() - p.StartTime.UnixMilli()
-		diag.NewDE(INFO, fmt.Sprintf("Pipeline finished in %d ms", p.ElapsedTime))
+		diag.LogEvent(INFO, fmt.Sprintf("Pipeline finished in %d ms", p.ElapsedTime))
 		if !p.Inerror {
 			p.RanSuccessfully()
 		}
@@ -72,7 +72,7 @@ func (p *Pipeline) ExecutePipeline(ctx context.Context) error {
 
 	if err != nil {
 		fmt.Printf("err: %v\n", err)
-		diag.NewDE(CRITICAL, fmt.Sprintf("Agent could not initialize because of error %v", err))
+		diag.LogEvent(CRITICAL, fmt.Sprintf("Agent could not initialize because of error %v", err))
 		return err
 	}
 
@@ -95,26 +95,26 @@ func (p *Pipeline) ExecutePipeline(ctx context.Context) error {
 		}
 	}
 
-	diag.NewDE(INFO, "starting main loop")
+	diag.LogEvent(INFO, "starting main loop")
 	//Executes all the things from the pipeline
 	for _, evt := range p.events {
 		select {
 		case <-ctx.Done():
 			fmt.Printf("\"done\": %v\n", "done")
-			diag.NewDE(WARN, "Pipeline got canceled before finishing")
+			diag.LogEvent(WARN, "Pipeline got canceled before finishing")
 			return ctx.Err()
 		default:
 			err := evt.ExecuteInPipeline(p, ctx)
 			if err != nil {
 				if evt.GetShouldStopIfError() {
 					p.Inerror = true
-					diag.NewDE(ERROR, fmt.Sprintf("got blocking error in executable %s : %v", evt.GetName(), err))
+					diag.LogEvent(ERROR, fmt.Sprintf("got blocking error in executable %s : %v", evt.GetName(), err))
 					break
 				}
 			}
 		}
 	}
-	diag.NewDE(DEBUG, "End of execution")
+	diag.LogEvent(DEBUG, "End of execution")
 	return lastErr
 }
 
@@ -150,7 +150,7 @@ func (p *Pipeline) ReportSQLITE() {
 	p.Report.Types = append(p.Report.Types, SQLITE)
 }
 
-func (p *Pipeline) SetReportLogLevel(imp DEImp) {
+func (p *Pipeline) SetReportLogLevel(imp EImportance) {
 	p.Report.LogLevel = imp
 }
 
