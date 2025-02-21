@@ -105,7 +105,7 @@ func (s *Server) SetPipelines(pipelines []*pipeline.Pipeline) {
 
 // Listen for calls to hook
 func (s *Server) Listen() {
-	http.Handle("/hook/", http.HandlerFunc(s.handleWebhook))
+	http.Handle("/hook/github/", http.HandlerFunc(s.handleWebhook))
 	if s.port != 0 {
 		fmt.Printf("Listening on port %v\n", s.port)
 		http.ListenAndServe(fmt.Sprintf(":%d", s.port), nil)
@@ -146,11 +146,11 @@ func getPipelineId(r *http.Request) (string, error) {
 	segments := strings.Split(r.URL.Path, "/")
 
 	// Expected path: "/users/{id}"
-	if len(segments) < 3 || segments[1] != "hook" {
+	if len(segments) < 4 || segments[1] != "hook" {
 		return "", errors.New("Invalid url")
 	}
 
-	id := segments[2]
+	id := segments[3]
 	return id, nil
 }
 

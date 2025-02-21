@@ -10,6 +10,7 @@ type Store struct {
 
 var store *Store
 
+// GetStore returns a single instance of the store of pipelines
 func GetStore() *Store {
 	if store == nil {
 		store = &Store{
