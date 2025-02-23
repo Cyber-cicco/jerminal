@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"flag"
 	"fmt"
 	"os"
@@ -19,18 +18,22 @@ var (
 
 func init() {
     flag.StringVar(&generateFlag, "gen", "", "Used to generate jerminal project files. Argument is the name of your go module")
+
 }
 
 func main() {
     flag.Usage = usage
+    flag.Parse()
+
     if generateFlag == "" {
         fmt.Println("generate flag is required")
+        flag.Usage()
         os.Exit(1)
     }
+
     sh("go", "mod", "init", generateFlag)
     sh("go", "get", "github.com/Cyber-cicco/jerminal")
     sh("go", "mod", "tidy")
-
 
     err := utils.CopyDir(resourcesDir, "./resources")
     if err != nil {
