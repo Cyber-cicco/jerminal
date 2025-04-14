@@ -1,43 +1,53 @@
-# Jerminal : Jenkins in the terminal
+# Jerminal: Jenkins in the Terminal
 
-⚠️  This is a work in progress. 
+⚠️ This is a work in progress. 
 
-## What is Jerminal ?
+## What is Jerminal?
 
-Jerminal is a pipeline framework that allow you to describe a pipeline of events you want
-to execute with helper functions. It also provides a set of detailed event logs, and
-a system of agents and schedules with fine grained customization.
+Jerminal is a pipeline framework that allows you to describe a pipeline of events you want
+to execute with helper functions. It provides:
 
-But more than this, it also provides a set of out of the box functionnalities, like
-a unix socket server, an integration with github hooks, and a production of reports in JSON files,
-and soon MongoDB and SQLITE.
+- Detailed event logs
+- A system of agents and schedules with fine-grained customization
+- A unix socket server
+- GitHub webhooks integration
+- Report generation in JSON files (MongoDB and SQLite support coming soon)
 
-You can use it for all sorts of things: 
- * CI/CD
- * Deterministic simulation testing
- * Integration testing
- * Load balancing
+You can use Jerminal for:
+* CI/CD pipelines
+* Deterministic simulation testing
+* Integration testing
+* Load balancing
+* Scheduled task execution
 
+## Why Jerminal?
 
-## Why Jerminal ?
+After 2 days of using Jenkins and wanting to `rm -rf / --no-preserve-root` myself IRL, I concluded that a web interface isn't always the best approach for pipeline management. Jerminal's philosophy is simple: pipeline configuration and execution are more efficient when done through code in a terminal environment.
 
-After an intense 2 days of using Jenkins and wanting to `rm -rf / --no-preserve-root` myself IRL,
-I came to the conclusion that a web interface was probably not the best way to do what Jenkins
-is doing.
+Benefits of Jerminal over traditional CI/CD tools:
+- Configure pipelines with code in your IDE
+- Use a type-safe scripting language
+- Version control your pipeline configurations
+- Easier tool and dependency management
+- No web interface complexity
 
-The idea behind Jerminal is simple : there is not a single thing in jenkins that wouldn't be easier
-if it was done through code and a terminal. Installing a tool, a plugin, scripting the pipeline, all
-of this would be so much more easier in an IDE with config files and a scripting language that enables
-type safety. That what jerminal does.
+## Installation
 
-## Getting started
+```bash
+go get github.com/Cyber-cicco/jerminal
+```
 
-You can define a pipeline using the `SetPipeline` function, as such:
+## Getting Started
+
+### Basic Pipeline
+
+You can define a pipeline using the `SetPipeline` function:
 
 ```go
-
 import (
 	"errors"
+	"fmt"
+	"context"
 
 	. "github.com/Cyber-cicco/jerminal/pipeline"
 	"github.com/Cyber-cicco/jerminal/server"
@@ -70,45 +80,95 @@ func main() {
 			).Retry(2, 1),
 		),
 	)
-
+	if err != nil {
+		// Handle error
+	}
+	
+	// Start the pipeline
+	pipeline.Start(context.Background())
 }
 ```
 
-A pipeline consist of :
+### Pipeline Structure
 
- * a name, defined by the first argument of `SetPipeline`
- * an agent, that gets it's own directory to execute code from. Every file created by the agent that is not cached will be destroyed at the end of the pipeline execution
- * a set of stages, that will be executed sequentially.
+A pipeline consists of:
 
-Each `stages` object will take a set of `stage` object to be executed, that each contains a set of functions.
+1. **Name**: Defined by the first argument of `SetPipeline`
+2. **Agent**: Gets its own directory to execute code from. Files created by the agent (not cached) are removed when execution completes
+3. **Stages**: Executed sequentially by default
 
-There are multiple ways of configuring theses objects. Each stage in a `stages` can be configured to be ran in parallel instead of sequentially, each `stage` can be configured to get retried n number of times, you can defer a function to be executed at the end of a stage, etc. Go check the wiki to find them all.
+Each `Stages` object takes a set of `Stage` objects that contain functions to execute.
 
-After configuring your pipeline, you can create a server by using the function `New()` from the package server, in this way :
+### Advanced Configuration
+
+- **Parallel Execution**: Configure stages to run in parallel
+- **Retry Logic**: Set stages to retry a specified number of times with delay
+- **Deferred Functions**: Run cleanup code at the end of stages
+- **Parameter Passing**: Pass data between pipeline stages
+
+### Setting Up a Server
+
+Create a server to manage your pipelines:
 
 ```go
-
 import (
 	"errors"
+	"context"
 
 	. "github.com/Cyber-cicco/jerminal/pipeline"
 	"github.com/Cyber-cicco/jerminal/server"
 )
 
 func main() {
-
-    // Pipeline code goes here...
+    // Pipeline definition...
 
 	s := server.New()
-	s.SetPipelines(p1)
+	s.SetPipelines(pipeline)
 	s.ListenGithubHooks(8091)
 }
-
 ```
 
-`server.new()` will set up a unix socket server that listens for JSON RPC messages and executes pipelines based on what it gets from a client.
+- `server.New()` sets up a unix socket server that listens for JSON RPC messages
+- `s.ListenGithubHooks(8091)` listens for GitHub webhooks on the specified port
 
-`s.ListenGithubHooks(8091)` will listen for github hooks on the specified port of your server, and execute a pipeline based on the last part of the url.
+## Command Reference
 
-You will be able to find further infos in the wiki
+### Key Functions
 
+- `SetPipeline(name, agent, ...commands)`: Create a new pipeline
+- `AnyAgent()`: Create a generic agent for execution
+- `RunOnce(...)`: Execute commands only on first run
+- `Stages(name, ...stages)`: Group stages together
+- `Stage(name, ...commands)`: Define an execution stage
+- `SH(command, ...args)`: Execute shell commands
+- `Exec(func)`: Run custom Go functions
+
+### Stage Modifiers
+
+- `.Retry(attempts, delay)`: Configure retry behavior
+- `.Parallel()`: Run stages in parallel
+- `.Defer(func)`: Execute after stage completion
+
+## Configuration
+
+Jerminal uses JSON configuration files located in the `resources` directory:
+
+- `jerminal.json`: Core application settings
+- `agents.json`: Agent configuration
+
+## Examples
+
+Check the `integration_tests` directory for complete examples:
+
+- Pipeline creation and execution
+- GitHub webhook integration
+- Report generation
+- Command execution
+
+## Contributing
+
+Contributions are welcome! Please see the wiki for development guidelines.
+
+## License
+
+MIT
