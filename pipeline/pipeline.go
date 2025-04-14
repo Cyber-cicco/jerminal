@@ -13,12 +13,10 @@ import (
 	"github.com/google/uuid"
 )
 
-// Key is used to get a param from the Pipeline
-type Key string
 
 type PipelineParams struct {
     sync.Mutex
-    params map[Key] interface{}
+    params map[utils.Key] interface{}
 }
 
 // Pipeline represents the main execution context for stages and executors.
@@ -203,7 +201,7 @@ func setPipelineWithState(name string, agentProvider AgentProvider, config *conf
 		Diagnostic:    &Diagnostic{},
 		TimeRan:       0,
 		globalState:   config,
-        PipelineParams: PipelineParams{params: map[Key]interface{}{}},
+        PipelineParams: PipelineParams{params: map[utils.Key]interface{}{}},
 		Report: &Report{
 			Types:    []ReportType{},
 			LogLevel: INFO,
@@ -216,7 +214,7 @@ func (p *Pipeline) ResetDiag() {
 	p.Diagnostic = p.Diagnostic.parent
 }
 
-func (p *PipelineParams) Get(param Key) (interface{}, error) {
+func (p *PipelineParams) Get(param utils.Key) (interface{}, error) {
     p.Lock()
     defer p.Unlock()
     res, ok := p.params[param]
@@ -226,7 +224,7 @@ func (p *PipelineParams) Get(param Key) (interface{}, error) {
     return res, nil
 }
 
-func (p *PipelineParams) MustGet(param Key) interface{} {
+func (p *PipelineParams) MustGet(param utils.Key) interface{} {
     p.Lock()
     defer p.Unlock()
     res, ok := p.params[param]
@@ -236,7 +234,7 @@ func (p *PipelineParams) MustGet(param Key) interface{} {
     return res
 }
 
-func (p *PipelineParams) Put(key Key, val interface{}) {
+func (p *PipelineParams) Put(key utils.Key, val interface{}) {
     p.Lock()
     defer p.Unlock()
     p.params[key] = val

@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 )
 
+const CmdOutKey = Key("CmdOutKey")
 // CD restricts navigation to prevent access to parent directories or absolute paths.
 //
 // It gives back two functions : one to set the context of the stage to the specified
@@ -52,6 +53,8 @@ func CD(dir string) *executor {
 }
 
 // SH Executes a command in the directory of the current agent
+// It also puts the result of the result of the command in
+// the params of the pipeline
 func SH(name string, args ...string) executable {
 	return Exec(func(p *Pipeline, ctx context.Context) error {
 		cmd := exec.Command(name, args...)
@@ -59,6 +62,7 @@ func SH(name string, args ...string) executable {
         p.Diagnostic.LogEvent(DEBUG, fmt.Sprintf("Executing command %s", name))
 		out, err := cmd.CombinedOutput()
         p.Diagnostic.LogEvent(DEBUG, fmt.Sprintf("Got ouput : %s", string(out)))
+        p.Put(CmdOutKey, out)
 		return err
 	})
 }
