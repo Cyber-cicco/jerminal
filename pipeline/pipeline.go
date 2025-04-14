@@ -203,6 +203,7 @@ func setPipelineWithState(name string, agentProvider AgentProvider, config *conf
 		Diagnostic:    &Diagnostic{},
 		TimeRan:       0,
 		globalState:   config,
+        PipelineParams: PipelineParams{params: map[Key]interface{}{}},
 		Report: &Report{
 			Types:    []ReportType{},
 			LogLevel: INFO,
