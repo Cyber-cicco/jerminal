@@ -5,11 +5,19 @@ import (
 	"errors"
 	"fmt"
 	"testing"
+
+	"github.com/Cyber-cicco/jerminal/config"
 )
 
-func __test_pipeline1(t *testing.T) (*Pipeline, error) {
-	return SetPipeline("pipeline_1", // 1 diag event for the start
+func __test_pipeline1(t *testing.T) *Pipeline {
+	return setPipelineWithState("pipeline_1", // 1 diag event for the start
 		AnyAgent(),
+        config.GetStateCustomConf(&config.Config{
+			AgentDir:             "./test/agent",
+			PipelineDir:          "./test/pipeline",
+			JerminalResourcePath: "../resources/jerminal.json",
+            AgentResourcePath: "../resources/agents.json",
+        }),
 		Stages("stages_1", // 1 diag for the stages
 			Stage("stage_1", // 1 diag for the stage
 				SH("echo", "bonjour"),
@@ -25,9 +33,15 @@ func __test_pipeline1(t *testing.T) (*Pipeline, error) {
 	)
 }
 
-func __test_pipeline2(t *testing.T) (*Pipeline, error) {
-	return SetPipeline("pipeline_1", // 1 diag event for the start
+func __test_pipeline2(t *testing.T) *Pipeline {
+	return setPipelineWithState("pipeline_2", // 1 diag event for the start
 		AnyAgent(),
+        config.GetStateCustomConf(&config.Config{
+			AgentDir:             "./test/agent",
+			PipelineDir:          "./test/pipeline",
+			JerminalResourcePath: "../resources/jerminal.json",
+            AgentResourcePath: "../resources/agents.json",
+        }),
 		Stages("stages_1", // 1 diag for the stages
 			Stage("stage_1", // 1 diag for the stage
 				Exec(func(p *Pipeline, ctx context.Context) error { return nil }),
@@ -42,15 +56,11 @@ func __test_pipeline2(t *testing.T) (*Pipeline, error) {
 	) // diag event at the end
 }
 
-func __test__getPipelineDiagnostics(t *testing.T, f func(t *testing.T) (*Pipeline, error)) *Pipeline {
+func __test__getPipelineDiagnostics(t *testing.T, f func(t *testing.T) *Pipeline) *Pipeline {
 
-	p1, err := f(t)
+	p1:= f(t)
 
-	if err != nil {
-		t.Fatalf("Expected no error got %v", err)
-	}
-
-	err = p1.ExecutePipeline(context.Background())
+    err := p1.ExecutePipeline(context.Background())
 
 	if err != nil {
 		t.Fatalf("Expected no error got %v", err)
@@ -70,7 +80,7 @@ func TestDiagnostics(t *testing.T) {
 		t.Fatalf("Expected %s, got %s", expected, actual)
 	}
 
-	expected = "3"
+	expected = "4"
 	actual = fmt.Sprintf("%d", len(p1.Diagnostic.Events))
 
 	if actual != expected {
@@ -154,7 +164,7 @@ func TestDiagnostics(t *testing.T) {
 func TestDiagErrorRecovery(t *testing.T) {
 	p1 := __test__getPipelineDiagnostics(t, __test_pipeline2)
 
-	expected := "pipeline_1"
+	expected := "pipeline_2"
 	actual := p1.Diagnostic.Label
 	if actual != expected {
 		t.Fatalf("Expected %s, got %s", expected, actual)

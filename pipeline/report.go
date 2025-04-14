@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-
 )
 
 type ReportType uint8
@@ -18,8 +17,8 @@ const (
 
 // Allows for creating reports in specified format
 type Report struct {
-	Types     []ReportType `json:"types"`
-	LogLevel  EImportance        `json:"-"`
+	Types    []ReportType `json:"types"`
+	LogLevel EImportance  `json:"-"`
 }
 
 func (r *Report) Report(p *Pipeline) error {

@@ -107,9 +107,7 @@ func GetState() (*GlobalStateProvider, error) {
 //
 // Should be used for tests
 func GetStateCustomConf(conf *Config) *GlobalStateProvider {
-	once.Do(func() {
-		initializeApplicationState(conf)
-	})
+    initializeApplicationState(conf)
 	return config
 }
 

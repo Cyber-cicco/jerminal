@@ -2,10 +2,10 @@ package pipeline
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
+	"sync"
 	"time"
 
 	"github.com/Cyber-cicco/jerminal/config"
@@ -13,9 +13,18 @@ import (
 	"github.com/google/uuid"
 )
 
+// Key is used to get a param from the Pipeline
+type Key string
+
+type PipelineParams struct {
+    sync.Mutex
+    params map[Key] interface{}
+}
+
 // Pipeline represents the main execution context for stages and executors.
 // It uses an Agent to manage execution and a directory for workspace.
 type Pipeline struct {
+    PipelineParams
 	Agent         *config.Agent               `json:"agent"` // Agent executing the Pipeline
 	agentProvider AgentProvider               // function executed at runtime to provide the Agent to the pipeline
 	Name          string                      `json:"name"` // human readable name of the pipeline
@@ -121,7 +130,8 @@ func (p *Pipeline) ExecutePipeline(ctx context.Context) error {
 func (p *Pipeline) RanSuccessfully() {
 	parent, ok := GetStore().GlobalPipelines[p.Name]
 	if !ok {
-		panic(errors.New("Should exist"))
+		p.Diagnostic.LogEvent(WARN, "Parent must exist. If it was not ran from a test, it was definitly a problem")
+        return
 	}
 	parent.TimeRan++
 }
@@ -198,11 +208,37 @@ func setPipelineWithState(name string, agentProvider AgentProvider, config *conf
 			LogLevel: INFO,
 		},
 	}
-    p.pipelineDir = filepath.Join(p.globalState.PipelineDir, p.GetId()) 
+	p.pipelineDir = filepath.Join(p.globalState.PipelineDir, p.GetId())
 	return &p
 }
 func (p *Pipeline) ResetDiag() {
 	p.Diagnostic = p.Diagnostic.parent
+}
+
+func (p *PipelineParams) Get(param Key) (interface{}, error) {
+    p.Lock()
+    defer p.Unlock()
+    res, ok := p.params[param]
+    if !ok {
+        return nil, fmt.Errorf("param %s does not exist", param)
+    }
+    return res, nil
+}
+
+func (p *PipelineParams) MustGet(param Key) interface{} {
+    p.Lock()
+    defer p.Unlock()
+    res, ok := p.params[param]
+    if !ok {
+        panic(fmt.Sprintf("param %s does not exist", param))
+    }
+    return res
+}
+
+func (p *PipelineParams) Put(key Key, val interface{}) {
+    p.Lock()
+    defer p.Unlock()
+    p.params[key] = val
 }
 
 // Agent retrieves an agent with the specified identifier.

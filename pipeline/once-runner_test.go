@@ -2,6 +2,7 @@ package pipeline
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -22,11 +23,17 @@ func TestOnceRunner(t *testing.T) {
 
 	dirPathPipe := filepath.Join(p.globalState.PipelineDir, p.Id.String())
 	dirPathAgent := filepath.Join(filepath.Join(p.globalState.AgentDir, p.Agent.Identifier))
-    os.MkdirAll(dirPathPipe, os.ModePerm)
-    os.MkdirAll(dirPathAgent, os.ModePerm)
+    fmt.Printf("dirPathAgent: %v\n", dirPathAgent)
+	os.MkdirAll(dirPathPipe, os.ModePerm)
+	os.MkdirAll(dirPathAgent, os.ModePerm)
+	defer func() {
+		os.RemoveAll(dirPathPipe)
+		os.RemoveAll(dirPathAgent)
+	}()
 
-    p.mainDirectory = dirPathAgent
-    p.directory = dirPathAgent
+	p.mainDirectory = dirPathAgent
+    p.pipelineDir = dirPathPipe
+	p.directory = dirPathAgent
 
 	err := o.ExecuteInPipeline(p, context.Background())
 
@@ -34,7 +41,7 @@ func TestOnceRunner(t *testing.T) {
 		t.Fatalf("Expected no error, got %v", err)
 	}
 
-    infos, err := os.Stat(filepath.Join(dirPathAgent, "test"))
+	infos, err := os.Stat(filepath.Join(dirPathAgent, "test"))
 
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
@@ -54,6 +61,4 @@ func TestOnceRunner(t *testing.T) {
 		t.Fatalf("Expected file to be called test, got %s", infos.Name())
 	}
 
-	os.RemoveAll(dirPathPipe)
-	os.RemoveAll(dirPathAgent)
 }

@@ -173,6 +173,7 @@ func TestCache(t *testing.T) {
     agentPath := filepath.Join(p.globalState.AgentDir, p.Agent.Identifier)
     pipeLinePath := filepath.Join(p.globalState.PipelineDir, p.Id.String())
     p.mainDirectory = agentPath
+    p.pipelineDir = pipeLinePath
     p.directory = agentPath
     os.MkdirAll(filepath.Join(p.directory, "test"), os.ModePerm)
     cache.Execute(p, context.Background())
