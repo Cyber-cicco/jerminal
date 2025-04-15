@@ -145,8 +145,9 @@ func initializeApplicationResources(conf *Config, execPath, homeDirEnv string) {
 	fmt.Print("Please enter a secret pass phrase for jerminal (prefix it with $ if you want it to be an env variable) : ")
 	reader := bufio.NewReader(os.Stdin)
 	var input string
+    var err error
 	for input == "" {
-		input, err := reader.ReadString('\n')
+		input, err = reader.ReadString('\n')
 		if err != nil {
 			fmt.Println("Encountered error while reading input, terminating\n", err)
 			os.Exit(1)
