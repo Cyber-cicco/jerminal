@@ -3,6 +3,8 @@ package config
 import (
 	"os"
 	"testing"
+
+	"github.com/Cyber-cicco/jerminal/utils"
 )
 
 var _test_count int = 1
@@ -41,4 +43,18 @@ func TestAgentLifeCycle(t *testing.T) {
         TestAgentLifeCycle(t)
     }
 
+}
+
+func TestResourceCreation(t *testing.T) {
+    execPath, err := os.Getwd()
+	homeDirEnv := os.Getenv("USERPROFILE")
+	if homeDirEnv == "" {
+		homeDirEnv = os.Getenv("HOME")
+	}
+    var conf Config
+	conf.AgentDir = homeDirEnv + "/.jerminal/agent"
+	conf.PipelineDir = homeDirEnv + "/.jerminal/pipeline"
+	conf.ReportDir = execPath + "./reports"
+    utils.FatalError(err, t)
+    initializeApplicationResources(&conf, execPath, homeDirEnv)
 }

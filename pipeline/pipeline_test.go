@@ -21,6 +21,9 @@ func _test_getPipeline(agentId string) *Pipeline {
 		TimeRan:       0,
 		events:        []pipelineEvents{},
 		Inerror:       false,
+        PipelineParams: PipelineParams{
+            params: make(map[Key]interface{}),
+        },
 		Diagnostic:    &Diagnostic{},
 		globalState: config.GetStateCustomConf(&config.Config{
 			AgentDir:             "./test/agent",

@@ -15,6 +15,10 @@ type Config struct {
 	JerminalResourcePath string
 	AgentResourcePath    string
 	GithubWebhookSecret  string `json:"github-webhook-secret"` // pour l'authentification des webhooks github
+	Secret               string `json:"secret"`
+}
+
+type Project struct {
 }
 
 // UpdateConfig Creates the config object
@@ -39,5 +43,6 @@ func (c *Config) setupEnv() {
 	c.AgentDir = os.ExpandEnv(c.AgentDir)
 	c.PipelineDir = os.ExpandEnv(c.PipelineDir)
 	c.ReportDir = os.ExpandEnv(c.ReportDir)
-    c.GithubWebhookSecret = os.ExpandEnv(c.GithubWebhookSecret)
+	c.Secret = os.ExpandEnv(c.Secret)
+	c.GithubWebhookSecret = os.ExpandEnv(c.GithubWebhookSecret)
 }

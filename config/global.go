@@ -1,6 +1,7 @@
 package config
 
 import (
+	"bufio"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -27,7 +28,7 @@ type Agent struct {
 
 var (
 	config *GlobalStateProvider
-	once  sync.Once
+	once   sync.Once
 )
 
 const DEFAULT_AGENT = "6524a5fc-0772-4684-82d7-6900c444162b"
@@ -89,16 +90,108 @@ func initializeApplicationState(conf *Config) error {
 func GetState() (*GlobalStateProvider, error) {
 	var err error
 	once.Do(func() {
-		conf := &Config{
-			JerminalResourcePath: "./resources/jerminal.json",
-			AgentResourcePath:    "./resources/agents.json",
-		}
-		err = initializeApplicationState(conf)
+		err = onceStateCreator()
 	})
 	if err != nil {
 		return nil, err
 	}
 	return config, config.UpdateConfig()
+}
+
+// onceStateCreator initializes the application state the first time
+// GetState is called
+//
+// SHOULD ONLY BE CALLED ONCE BY GetState
+func onceStateCreator() error {
+	execPath, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+	homeDirEnv := os.Getenv("USERPROFILE")
+	if homeDirEnv == "" {
+		homeDirEnv = os.Getenv("HOME")
+	}
+	conf := &Config{
+		JerminalResourcePath: execPath + "/resources/jerminal.json",
+		AgentResourcePath:    execPath + "/resources/agents.json",
+	}
+	if _, err := os.Stat(conf.JerminalResourcePath); err != nil {
+        initializeApplicationResources(conf, execPath, homeDirEnv)
+	}
+
+    if _, err := os.Stat(conf.AgentDir); err != nil {
+        fmt.Println("Jerminal env was not set up, creating the necessary directories...")
+        err := os.MkdirAll(conf.AgentDir, 0644)
+        if err != nil {
+            fmt.Println("Encountered error while creating jerminal agent environnement. Terminating.")
+            os.Exit(1)
+        }
+        err = os.MkdirAll(conf.PipelineDir, 0644)
+        if err != nil {
+            fmt.Println("Encountered error while creating jerminal pipeline environnement. Terminating.")
+            os.Exit(1)
+        }
+    }
+
+	return initializeApplicationState(conf)
+
+}
+
+// initializeApplicationResources creates the necessary files and directories at
+// the root of the project
+func initializeApplicationResources(conf *Config, execPath, homeDirEnv string) {
+
+	fmt.Println("Your project is not yet set up !")
+	fmt.Print("Please enter a secret pass phrase for jerminal (prefix it with $ if you want it to be an env variable) : ")
+	reader := bufio.NewReader(os.Stdin)
+	var input string
+	for input == "" {
+		input, err := reader.ReadString('\n')
+		if err != nil {
+			fmt.Println("Encountered error while reading input, terminating\n", err)
+			os.Exit(1)
+		}
+		if input == "" {
+			fmt.Println("The secret passphrase cannot be empty.")
+			fmt.Print("Please enter again (prefix it with $ if you want it to be an env variable) : ")
+		}
+	}
+	conf.AgentDir = homeDirEnv + "/.jerminal/agent"
+	conf.PipelineDir = homeDirEnv + "/.jerminal/pipeline"
+	conf.ReportDir = execPath + "./reports"
+	conf.Secret = input
+
+	if _, err := os.Stat(execPath + "/resources"); err != nil {
+		os.Mkdir(execPath+"/resources", 0755)
+		fmt.Println("Created a resources directory in the project root. This is where your project configuration files will be stored.")
+	}
+	confBytes, err := json.Marshal(conf)
+	if err != nil {
+		panic(err)
+	}
+	err = os.WriteFile(conf.JerminalResourcePath, confBytes, 0644)
+	if err != nil {
+		fmt.Println("Encountered error when creating the jerminal resource file. Terminating.")
+		os.Exit(1)
+	}
+    fmt.Println("Created jerminal resource path.")
+	agents := []Agent{
+		{
+			Identifier: "default",
+		},
+	}
+    agentBytes, err := json.Marshal(agents)
+    if err != nil {
+		fmt.Println("Encountered error when creating the agents resource file. Terminating.")
+		os.Exit(1)
+    }
+    err = os.WriteFile(conf.AgentResourcePath, agentBytes, 0644)
+    if err != nil {
+		fmt.Println("Encountered error when creating the agent resource file. Terminating.")
+    }
+    fmt.Println("Created agent resource path with a default agent. Add more agents if you want to execute tasks in parallel.")
+    conf.Secret = os.ExpandEnv(conf.Secret)
+
 }
 
 // Gets the current config of the application with a custom config.
@@ -107,7 +200,7 @@ func GetState() (*GlobalStateProvider, error) {
 //
 // Should be used for tests
 func GetStateCustomConf(conf *Config) *GlobalStateProvider {
-    initializeApplicationState(conf)
+	initializeApplicationState(conf)
 	return config
 }
 
@@ -137,7 +230,7 @@ func (a *Agent) CleanUp() error {
 
 	defer a.Unlock()
 	a.Lock()
-    fmt.Println("Cleaning up")
+	fmt.Println("Cleaning up")
 
 	path := path.Join(a.State.AgentDir, a.Identifier)
 	err := os.RemoveAll(path)
