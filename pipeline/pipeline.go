@@ -180,7 +180,6 @@ func (p *Pipeline) Clone() Pipeline {
 // It gets the current config of the app and gives back the Pipeline
 func SetPipeline(name string, agent AgentProvider, events ...pipelineEvents) (*Pipeline, error) {
 	s, err := config.GetState()
-	fmt.Printf("s: %v\n", s)
 	if err != nil {
 		return nil, err
 	}
