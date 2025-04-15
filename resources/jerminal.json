@@ -5,6 +5,7 @@
     "secret": "d7e1eb55-aa5d-484e-bd58-cbc080386956",
     "github-webhook-secret": "$GITHUB_WEBHOOK_SECRET",
     "project": {
-
+        "bonjour": "bonjour",
+        "jaimeleboulgour": true
     }
 }

@@ -215,9 +215,15 @@ func (p *Pipeline) ResetDiag() {
 
 type ResourceKey string
 
-func (p *Pipeline) GetResource(param ResourceKey) interface{} {
+func (p *Pipeline) GetResource(param ResourceKey) (interface{}, bool) {
+    res, ok := p.Config.UserParams[string(param)]
+    return res, ok
+}
+
+func (p *Pipeline) MustGetResource(param ResourceKey) interface{} {
     return p.Config.UserParams[string(param)]
 }
+
 
 func (p *PipelineParams) Get(param Key) (interface{}, error) {
     p.Lock()
