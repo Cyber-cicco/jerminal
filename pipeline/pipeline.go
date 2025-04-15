@@ -213,6 +213,12 @@ func (p *Pipeline) ResetDiag() {
 	p.Diagnostic = p.Diagnostic.parent
 }
 
+type ResourceKey string
+
+func (p *Pipeline) GetResource(param ResourceKey) interface{} {
+    return p.Config.UserParams[string(param)]
+}
+
 func (p *PipelineParams) Get(param Key) (interface{}, error) {
     p.Lock()
     defer p.Unlock()
