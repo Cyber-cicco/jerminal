@@ -20,10 +20,10 @@ type GlobalStateProvider struct {
 // and cleans it up afterward. The Identifier uniquely identifies the agent.
 type Agent struct {
 	sync.Mutex
-	BusySig    *sync.Cond           // Signal informing if the Agent is busy
+	BusySig    *sync.Cond           `json:"-"`          // Signal informing if the Agent is busy
 	Identifier string               `json:"identifier"` // unique string representing an Agent
-	Busy       bool                 // true if the agent is executing a pipeline
-	State      *GlobalStateProvider // The application config
+	Busy       bool                 `json:"-"`          // true if the agent is executing a pipeline
+	State      *GlobalStateProvider `json:"-"`          // The application config
 }
 
 var (
@@ -116,22 +116,22 @@ func onceStateCreator() error {
 		AgentResourcePath:    execPath + "/resources/agents.json",
 	}
 	if _, err := os.Stat(conf.JerminalResourcePath); err != nil {
-        initializeApplicationResources(conf, execPath, homeDirEnv)
+		initializeApplicationResources(conf, execPath, homeDirEnv)
 	}
 
-    if _, err := os.Stat(conf.AgentDir); err != nil {
-        fmt.Println("Jerminal env was not set up, creating the necessary directories...")
-        err := os.MkdirAll(conf.AgentDir, 0644)
-        if err != nil {
-            fmt.Println("Encountered error while creating jerminal agent environnement. Terminating.")
-            os.Exit(1)
-        }
-        err = os.MkdirAll(conf.PipelineDir, 0644)
-        if err != nil {
-            fmt.Println("Encountered error while creating jerminal pipeline environnement. Terminating.")
-            os.Exit(1)
-        }
-    }
+	if _, err := os.Stat(conf.AgentDir); err != nil {
+		fmt.Println("Jerminal env was not set up, creating the necessary directories...")
+		err := os.MkdirAll(conf.AgentDir, 0644)
+		if err != nil {
+			fmt.Println("Encountered error while creating jerminal agent environnement. Terminating.")
+			os.Exit(1)
+		}
+		err = os.MkdirAll(conf.PipelineDir, 0644)
+		if err != nil {
+			fmt.Println("Encountered error while creating jerminal pipeline environnement. Terminating.")
+			os.Exit(1)
+		}
+	}
 
 	return initializeApplicationState(conf)
 
@@ -145,7 +145,7 @@ func initializeApplicationResources(conf *Config, execPath, homeDirEnv string) {
 	fmt.Print("Please enter a secret pass phrase for jerminal (prefix it with $ if you want it to be an env variable) : ")
 	reader := bufio.NewReader(os.Stdin)
 	var input string
-    var err error
+	var err error
 	for input == "" {
 		input, err = reader.ReadString('\n')
 		if err != nil {
@@ -175,23 +175,23 @@ func initializeApplicationResources(conf *Config, execPath, homeDirEnv string) {
 		fmt.Println("Encountered error when creating the jerminal resource file. Terminating.")
 		os.Exit(1)
 	}
-    fmt.Println("Created jerminal resource path.")
+	fmt.Println("Created jerminal resource path.")
 	agents := []Agent{
 		{
 			Identifier: "default",
 		},
 	}
-    agentBytes, err := json.Marshal(agents)
-    if err != nil {
+	agentBytes, err := json.Marshal(agents)
+	if err != nil {
 		fmt.Println("Encountered error when creating the agents resource file. Terminating.")
 		os.Exit(1)
-    }
-    err = os.WriteFile(conf.AgentResourcePath, agentBytes, 0644)
-    if err != nil {
+	}
+	err = os.WriteFile(conf.AgentResourcePath, agentBytes, 0644)
+	if err != nil {
 		fmt.Println("Encountered error when creating the agent resource file. Terminating.")
-    }
-    fmt.Println("Created agent resource path with a default agent. Add more agents if you want to execute tasks in parallel.")
-    conf.Secret = os.ExpandEnv(conf.Secret)
+	}
+	fmt.Println("Created agent resource path with a default agent. Add more agents if you want to execute tasks in parallel.")
+	conf.Secret = os.ExpandEnv(conf.Secret)
 
 }
 
