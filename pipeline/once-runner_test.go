@@ -2,7 +2,6 @@ package pipeline
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -23,7 +22,6 @@ func TestOnceRunner(t *testing.T) {
 
 	dirPathPipe := filepath.Join(p.globalState.PipelineDir, p.Id.String())
 	dirPathAgent := filepath.Join(filepath.Join(p.globalState.AgentDir, p.Agent.Identifier))
-    fmt.Printf("dirPathAgent: %v\n", dirPathAgent)
 	os.MkdirAll(dirPathPipe, os.ModePerm)
 	os.MkdirAll(dirPathAgent, os.ModePerm)
 	defer func() {

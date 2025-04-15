@@ -182,8 +182,6 @@ func Defer(defered Exec) executable {
 // Cache copies a directory in the cache
 func Cache(dirname string) executable {
 	return Exec(func(p *Pipeline, ctx context.Context) error {
-        fmt.Printf("p.directory: %v\n", p.directory)
-        fmt.Printf("p.pipelineDir: %v\n", p.pipelineDir)
 		targetPath := filepath.Join(p.directory, dirname)
 		cachePath := filepath.Join(p.pipelineDir, dirname)
 		p.Diagnostic.LogEvent(INFO, fmt.Sprintf("Caching directory %s", targetPath))

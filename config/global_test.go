@@ -23,38 +23,15 @@ func TestAgentLifeCycle(t *testing.T) {
 	STATE.UpdateConfig()
 	a := STATE.GetAgent("test")
 	actualPath, err := a.Initialize()
-
-	if err != nil {
-		t.Fatalf("Expected no error, got %v", err)
-	}
-
-	if expectedPath != actualPath {
-		t.Fatalf("Expected %s, got %s", expectedPath, actualPath)
-	}
+    utils.FatalError(err, t)
+    utils.FatalExpectedActual(expectedPath, actualPath, t)
 
     err = a.CleanUp()
-
-    if err != nil {
-        t.Fatalf("Expect no error, got %v", err)
-    }
+    utils.FatalError(err, t)
 
     if _test_count < 2 {
         _test_count++
         TestAgentLifeCycle(t)
     }
 
-}
-
-func TestResourceCreation(t *testing.T) {
-    execPath, err := os.Getwd()
-	homeDirEnv := os.Getenv("USERPROFILE")
-	if homeDirEnv == "" {
-		homeDirEnv = os.Getenv("HOME")
-	}
-    var conf Config
-	conf.AgentDir = homeDirEnv + "/.jerminal/agent"
-	conf.PipelineDir = homeDirEnv + "/.jerminal/pipeline"
-	conf.ReportDir = execPath + "./reports"
-    utils.FatalError(err, t)
-    initializeApplicationResources(&conf, execPath, homeDirEnv)
 }

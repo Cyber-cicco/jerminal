@@ -114,16 +114,20 @@ func onceStateCreator() error {
 	conf := &Config{
 		JerminalResourcePath: execPath + "/resources/jerminal.json",
 		AgentResourcePath:    execPath + "/resources/agents.json",
+        AgentDir: homeDirEnv + "/agent",
+        PipelineDir: homeDirEnv + "/pipeline",
 	}
 	if _, err := os.Stat(conf.JerminalResourcePath); err != nil {
 		initializeApplicationResources(conf, execPath, homeDirEnv)
 	}
 
 	if _, err := os.Stat(conf.AgentDir); err != nil {
+        fmt.Printf("err: %v\n", err)
 		fmt.Println("Jerminal env was not set up, creating the necessary directories...")
 		err := os.MkdirAll(conf.AgentDir, 0644)
 		if err != nil {
-			fmt.Println("Encountered error while creating jerminal agent environnement. Terminating.")
+			fmt.Println("Encountered error while creating jerminal agent environnement. Terminating.", err)
+            fmt.Printf("conf.AgentDir: %v\n", conf.AgentDir)
 			os.Exit(1)
 		}
 		err = os.MkdirAll(conf.PipelineDir, 0644)

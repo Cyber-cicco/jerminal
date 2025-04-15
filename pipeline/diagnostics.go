@@ -26,10 +26,10 @@ type Diagnostic struct {
 
 // Infos about an event
 type DiagnosticEvent struct {
-	Description string `json:"description"` // Description of the event
-	Time        string `json:"time"`        // Time of the event happening
-	Name        string `json:"name"`        // Name to display in the log
-	Importance  EImportance  `json:"importance"`  // Importance of the event
+	Description string      `json:"description"` // Description of the event
+	Time        string      `json:"time"`        // Time of the event happening
+	Name        string      `json:"name"`        // Name to display in the log
+	Importance  EImportance `json:"importance"`  // Importance of the event
 }
 
 // LogEvent is a helper function to add an event to the diagnostic
@@ -42,7 +42,7 @@ func (d *Diagnostic) LogEvent(importance EImportance, description string) {
 		Time:        time.Now().Format(DATE_TIME_LAYOUT),
 		Name:        d.Label,
 	}
-	//newEvt.Log()
+	newEvt.Log()
 	d.Events = append(d.Events, newEvt)
 }
 

@@ -12,8 +12,8 @@ type Config struct {
 	AgentDir             string `json:"agent-dir"`    // Source directory where agents do their work
 	PipelineDir          string `json:"pipeline-dir"` // Source directory where pipelines cache the results of commands that should run once
 	ReportDir            string `json:"report-dir"`
-	JerminalResourcePath string
-	AgentResourcePath    string
+	JerminalResourcePath string `json:"-"`
+	AgentResourcePath    string `json:"-"`
 	GithubWebhookSecret  string `json:"github-webhook-secret"` // pour l'authentification des webhooks github
 	Secret               string `json:"secret"`
 }

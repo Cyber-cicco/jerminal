@@ -55,7 +55,6 @@ type AgentProvider func(p *Pipeline) *config.Agent
 func (p *Pipeline) ExecutePipeline(ctx context.Context) error {
 	var lastErr error
 	p.Agent = p.agentProvider(p)
-	fmt.Printf("p.id: %v\n", p.Id)
 	p.StartTime = time.Now()
 
 	diag := NewDiag(fmt.Sprintf("%s", p.Name))
@@ -108,7 +107,6 @@ func (p *Pipeline) ExecutePipeline(ctx context.Context) error {
 	for _, evt := range p.events {
 		select {
 		case <-ctx.Done():
-			fmt.Printf("\"done\": %v\n", "done")
 			diag.LogEvent(WARN, "Pipeline got canceled before finishing")
 			return ctx.Err()
 		default:
