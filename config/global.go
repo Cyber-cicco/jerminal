@@ -89,9 +89,9 @@ func initializeApplicationState(conf *Config) error {
 // Should be used by default
 func GetState() (*GlobalStateProvider, error) {
 	var err error
-	once.Do(func() {
-		err = onceStateCreator()
-	})
+    if config == nil {
+        err = onceStateCreator()
+    }
 	if err != nil {
 		return nil, err
 	}
@@ -304,9 +304,15 @@ func (s *GlobalStateProvider) CloneConfig() *Config {
 	s.Config.Lock()
 	defer s.Config.Unlock()
 	conf := Config{
+		RWMutex:              sync.RWMutex{},
 		AgentDir:             s.AgentDir,
 		PipelineDir:          s.PipelineDir,
+		ReportDir:            s.ReportDir,
 		JerminalResourcePath: s.JerminalResourcePath,
+		AgentResourcePath:    s.AgentResourcePath,
+		GithubWebhookSecret:  s.GithubWebhookSecret,
+		Secret:               s.Secret,
+		UserParams:           s.UserParams,
 	}
 	return &conf
 }

@@ -16,14 +16,14 @@ import (
 type Key string
 
 type PipelineParams struct {
-    sync.Mutex
-    params map[Key] interface{}
+	sync.Mutex
+	params map[Key]interface{}
 }
 
 // Pipeline represents the main execution context for stages and executors.
 // It uses an Agent to manage execution and a directory for workspace.
 type Pipeline struct {
-    PipelineParams
+	PipelineParams
 	Agent         *config.Agent               `json:"agent"` // Agent executing the Pipeline
 	agentProvider AgentProvider               // function executed at runtime to provide the Agent to the pipeline
 	Name          string                      `json:"name"` // human readable name of the pipeline
@@ -128,7 +128,7 @@ func (p *Pipeline) RanSuccessfully() {
 	parent, ok := GetStore().GlobalPipelines[p.Name]
 	if !ok {
 		p.Diagnostic.LogEvent(WARN, "Parent must exist. If it was not ran from a test, it was definitly a problem")
-        return
+		return
 	}
 	parent.TimeRan++
 }
@@ -180,6 +180,7 @@ func (p *Pipeline) Clone() Pipeline {
 // It gets the current config of the app and gives back the Pipeline
 func SetPipeline(name string, agent AgentProvider, events ...pipelineEvents) (*Pipeline, error) {
 	s, err := config.GetState()
+	fmt.Printf("s: %v\n", s)
 	if err != nil {
 		return nil, err
 	}
@@ -191,16 +192,17 @@ func SetPipeline(name string, agent AgentProvider, events ...pipelineEvents) (*P
 // Only in testing should it be used by something else than SetPipeline
 func setPipelineWithState(name string, agentProvider AgentProvider, config *config.GlobalStateProvider, events ...pipelineEvents) *Pipeline {
 	p := Pipeline{
-		Name:          name,
-		Id:            uuid.New(),
-		agentProvider: agentProvider,
-		mainDirectory: "",
-		directory:     "",
-		events:        events,
-		Diagnostic:    &Diagnostic{},
-		TimeRan:       0,
-		globalState:   config,
-        PipelineParams: PipelineParams{params: map[Key]interface{}{}},
+		Name:           name,
+		Id:             uuid.New(),
+		agentProvider:  agentProvider,
+		mainDirectory:  "",
+		directory:      "",
+		events:         events,
+		Diagnostic:     &Diagnostic{},
+		TimeRan:        0,
+		globalState:    config,
+		Config:         config.Config,
+		PipelineParams: PipelineParams{params: map[Key]interface{}{}},
 		Report: &Report{
 			Types:    []ReportType{},
 			LogLevel: INFO,
@@ -216,39 +218,38 @@ func (p *Pipeline) ResetDiag() {
 type ResourceKey string
 
 func (p *Pipeline) GetResource(param ResourceKey) (interface{}, bool) {
-    res, ok := p.Config.UserParams[string(param)]
-    return res, ok
+	res, ok := p.Config.UserParams[string(param)]
+	return res, ok
 }
 
 func (p *Pipeline) MustGetResource(param ResourceKey) interface{} {
-    return p.Config.UserParams[string(param)]
+	return p.Config.UserParams[string(param)]
 }
 
-
 func (p *PipelineParams) Get(param Key) (interface{}, error) {
-    p.Lock()
-    defer p.Unlock()
-    res, ok := p.params[param]
-    if !ok {
-        return nil, fmt.Errorf("param %s does not exist", param)
-    }
-    return res, nil
+	p.Lock()
+	defer p.Unlock()
+	res, ok := p.params[param]
+	if !ok {
+		return nil, fmt.Errorf("param %s does not exist", param)
+	}
+	return res, nil
 }
 
 func (p *PipelineParams) MustGet(param Key) interface{} {
-    p.Lock()
-    defer p.Unlock()
-    res, ok := p.params[param]
-    if !ok {
-        panic(fmt.Sprintf("param %s does not exist", param))
-    }
-    return res
+	p.Lock()
+	defer p.Unlock()
+	res, ok := p.params[param]
+	if !ok {
+		panic(fmt.Sprintf("param %s does not exist", param))
+	}
+	return res
 }
 
 func (p *PipelineParams) Put(key Key, val interface{}) {
-    p.Lock()
-    defer p.Unlock()
-    p.params[key] = val
+	p.Lock()
+	defer p.Unlock()
+	p.params[key] = val
 }
 
 // Agent retrieves an agent with the specified identifier.
