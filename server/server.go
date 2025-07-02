@@ -31,22 +31,27 @@ func New() *Server {
 		store: pipeline.GetStore(),
 	}
 
-	// Set up Unix socket
 	socketPath := "/tmp/pipeline-control.sock"
-	os.Remove(socketPath) // Clean up existing socket if any
+	os.Remove(socketPath)
 
 	listener, err := net.Listen("unix", socketPath)
 	if err != nil {
 		fmt.Printf("Failed to create Unix socket: %v\n", err)
 		return server
 	}
-    conf, err := config.GetState()
-    if err != nil {
-        fmt.Printf("Server could not start because of error\n%v\n", err)
-        os.Exit(1)
-    }
 
-    server.config = conf
+	err = os.Chmod(socketPath, 0666)
+	if err != nil {
+		fmt.Printf("Failed to set socket permissions: %v\n", err)
+	}
+
+	conf, err := config.GetState()
+	if err != nil {
+		fmt.Printf("Server could not start because of error\n%v\n", err)
+		os.Exit(1)
+	}
+
+	server.config = conf
 	server.listener = listener
 
 	// Start socket listener in goroutine
@@ -122,10 +127,10 @@ func (s *Server) handleWebhook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-    _, body, err := getBody(r.Body)
+	_, body, err := getBody(r.Body)
 	defer r.Body.Close()
 
-    verifyGithubSignature(s.config.GithubWebhookSecret, r.Header.Get("X-Hub-Signature"), body)
+	verifyGithubSignature(s.config.GithubWebhookSecret, r.Header.Get("X-Hub-Signature"), body)
 
 	if err != nil {
 		http.Error(w, "Failed to read request body", http.StatusInternalServerError)
@@ -143,7 +148,7 @@ func getPipelineId(r *http.Request) (string, error) {
 
 	segments := strings.Split(r.URL.Path, "/")
 
-	// Expected path: "/users/{id}"
+	// Expected path: "/hook/github/{id}"
 	if len(segments) < 4 || segments[1] != "hook" {
 		return "", errors.New("Invalid url")
 	}
