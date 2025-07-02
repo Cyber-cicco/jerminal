@@ -3,9 +3,11 @@ package pipeline
 import (
 	"context"
 	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/Cyber-cicco/jerminal/config"
+	"github.com/Cyber-cicco/jerminal/utils"
 	"github.com/google/uuid"
 )
 
@@ -21,10 +23,10 @@ func _test_getPipeline(agentId string) *Pipeline {
 		TimeRan:       0,
 		events:        []pipelineEvents{},
 		Inerror:       false,
-        PipelineParams: PipelineParams{
-            params: make(map[Key]interface{}),
-        },
-		Diagnostic:    &Diagnostic{},
+		PipelineParams: PipelineParams{
+			params: make(map[Key]interface{}),
+		},
+		Diagnostic: &Diagnostic{},
 		globalState: config.GetStateCustomConf(&config.Config{
 			AgentDir:             "./test/agent",
 			PipelineDir:          "./test/pipeline",
@@ -359,9 +361,9 @@ func TestPipelineParams(t *testing.T) {
 			),
 			Stage("s2s3",
 				Exec(func(p *Pipeline, ctx context.Context) error {
-                    actual := p.MustGet(actualKey).(int)
-                    actual++
-                    p.Put(actualKey, actual)
+					actual := p.MustGet(actualKey).(int)
+					actual++
+					p.Put(actualKey, actual)
 					return nil
 				}),
 			),
@@ -369,29 +371,29 @@ func TestPipelineParams(t *testing.T) {
 		Post(
 			Success(func(p *Pipeline, ctx context.Context) error {
 				t.Log("in success")
-                actual := p.MustGet(actualKey).(int)
-                actual++
-                p.Put(actualKey, actual)
+				actual := p.MustGet(actualKey).(int)
+				actual++
+				p.Put(actualKey, actual)
 				return nil
 			}),
 			Failure(func(p *Pipeline, ctx context.Context) error {
 				t.Log("in failure")
-                actual := p.MustGet(actualKey).(int)
-                actual--
-                p.Put(actualKey, actual)
+				actual := p.MustGet(actualKey).(int)
+				actual--
+				p.Put(actualKey, actual)
 				return nil
 			}),
 			Always(func(p *Pipeline, ctx context.Context) error {
 				t.Log("in always")
-                actual := p.MustGet(actualKey).(int)
-                actual++
-                p.Put(actualKey, actual)
+				actual := p.MustGet(actualKey).(int)
+				actual++
+				p.Put(actualKey, actual)
 				return nil
 			}),
 		),
 	)
 	err := p.ExecutePipeline(context.Background())
-    actual := p.MustGet(actualKey).(int)
+	actual := p.MustGet(actualKey).(int)
 
 	if err != nil {
 		t.Fatalf("Expected no error but got %v", err)
@@ -406,4 +408,36 @@ func TestPipelineParams(t *testing.T) {
 		t.Fatalf("Expected %d, got %d", expected, actual)
 	}
 
+}
+
+func TestStagesStopage(t *testing.T) {
+	res := 0
+	p := setPipelineWithState("test_stopage",
+		Agent("test"),
+		config.GetStateCustomConf(&config.Config{
+			AgentDir:             "./test/agent",
+			PipelineDir:          "./test/pipeline",
+			JerminalResourcePath: "../resources/jerminal.json",
+			AgentResourcePath:    "../resources/agents.json",
+		}),
+		Stages("error",
+			Stage("thrower",
+				Exec(func(p *Pipeline, ctx context.Context) error {
+					res++
+					return fmt.Errorf("uiiiiiii")
+				}),
+			),
+		),
+		Stages("not_executed",
+			Stage("flame",
+				Exec(func(p *Pipeline, ctx context.Context) error {
+					res++
+					return nil
+				}),
+			),
+		),
+	)
+	err := p.ExecutePipeline(context.Background())
+    utils.FatalError(err, t)
+    utils.FatalExpectedActual(1, res, t)
 }

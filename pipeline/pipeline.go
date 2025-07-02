@@ -105,6 +105,7 @@ func (p *Pipeline) ExecutePipeline(ctx context.Context) error {
 	diag.LogEvent(INFO, "starting main loop")
 	//Executes all the things from the pipeline
 	for _, evt := range p.events {
+        var stageErr error
 		select {
 		case <-ctx.Done():
 			diag.LogEvent(WARN, "Pipeline got canceled before finishing")
@@ -113,12 +114,15 @@ func (p *Pipeline) ExecutePipeline(ctx context.Context) error {
 			err := evt.ExecuteInPipeline(p, ctx)
 			if err != nil {
 				if evt.GetShouldStopIfError() {
+                    stageErr = err
 					p.Inerror = true
 					diag.LogEvent(ERROR, fmt.Sprintf("got blocking error in executable %s : %v", evt.GetName(), err))
-					break
 				}
 			}
 		}
+        if stageErr != nil {
+            break
+        }
 	}
 	diag.LogEvent(DEBUG, "End of execution")
 	return lastErr
