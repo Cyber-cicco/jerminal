@@ -67,3 +67,21 @@ func SH(name string, args ...string) executable {
 	})
 }
 
+
+func SHBackground(name string, args ...string) executable {
+    return Exec(func(p *Pipeline, ctx context.Context) error {
+        cmd := exec.Command(name, args...)
+        cmd.Dir = p.directory
+        p.Diagnostic.LogEvent(DEBUG, fmt.Sprintf("Starting background command %s", name))
+        
+        err := cmd.Start()
+        if err != nil {
+            return err
+        }
+        
+        p.Diagnostic.LogEvent(DEBUG, fmt.Sprintf("Background process started with PID: %d", cmd.Process.Pid))
+        
+        return nil
+    })
+}
+
