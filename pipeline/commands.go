@@ -16,10 +16,17 @@ const CmdOutKey = Key("CmdOutKey")
 // diretory, and one to execute later that puts the current directory back to the original
 func CD(dir string) *executor {
 	cd := func(p *Pipeline, ctx context.Context) error {
+
 		// Prevent navigation to parent directories
 		cleanDir := filepath.Clean(dir)
 
-		newPath := filepath.Join(p.directory, cleanDir)
+        var newPath string
+
+		if filepath.IsAbs(dir) {
+			newPath = cleanDir
+		} else {
+            newPath = filepath.Join(p.directory, cleanDir)
+        }
 
 		// Check if the resulting path exists and is a directory
 		info, err := os.Stat(newPath)
