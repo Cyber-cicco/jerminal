@@ -16,11 +16,6 @@ const CmdOutKey = Key("CmdOutKey")
 // diretory, and one to execute later that puts the current directory back to the original
 func CD(dir string) *executor {
 	cd := func(p *Pipeline, ctx context.Context) error {
-		// Reject absolute paths
-		if filepath.IsAbs(dir) {
-			return errors.New("absolute paths are not allowed")
-		}
-
 		// Prevent navigation to parent directories
 		cleanDir := filepath.Clean(dir)
 
