@@ -179,13 +179,6 @@ func invalidParamsError(req *rpc.JRPCRequest, err error) []byte {
 }
 
 // BeginPipeline starts a pipeline cloned from the original one.
-// Weird choice, should two of the same pipelines be able to
-// execute simultaneously ?
-// TODO : figure it out. If we decide to allow it, there will be
-// problems with how agents are handled
-// If we accept this, AnyAgent must set the agent of the pipeline
-// at runtime
-// I thinks it's ok now
 func (s *Server) BeginPipeline(id string) error {
 	s.store.Lock()
 	pipeline, ok := s.store.GlobalPipelines[id]

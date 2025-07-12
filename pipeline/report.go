@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 )
 
 type ReportType uint8
@@ -38,8 +39,9 @@ func (r *Report) Report(p *Pipeline) error {
 					return err
 				}
 			}
-			fileName := p.GetId() + ".json"
+			fileName := time.Now().Format(time.RFC3339Nano) + ".json"
 			clone := *p
+
 			clone.Diagnostic = clone.Diagnostic.FilterBasedOnImportance(r.LogLevel)
 			filePath := filepath.Join(dirPath, fileName)
 			fileContent, err := json.MarshalIndent(

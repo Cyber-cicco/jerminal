@@ -114,12 +114,15 @@ func onceStateCreator() error {
 	conf := &Config{
 		JerminalResourcePath: execPath + "/resources/jerminal.json",
 		AgentResourcePath:    execPath + "/resources/agents.json",
-        AgentDir: homeDirEnv + "/agent",
-        PipelineDir: homeDirEnv + "/pipeline",
 	}
 	if _, err := os.Stat(conf.JerminalResourcePath); err != nil {
 		initializeApplicationResources(conf, execPath, homeDirEnv)
 	}
+
+    err = conf.UpdateConfig()
+    if err != nil {
+        return fmt.Errorf("got error updating config :%v\n", err)
+    }
 
 	if _, err := os.Stat(conf.AgentDir); err != nil {
         fmt.Printf("err: %v\n", err)
