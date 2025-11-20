@@ -184,8 +184,7 @@ func (s *Server) BeginPipeline(id string) error {
 	pipeline, ok := s.store.GlobalPipelines[id]
 	s.store.Unlock()
 	if !ok {
-		fmt.Printf("Wrong id received %s", id)
-		return errors.New("Wrong id received")
+		return fmt.Errorf("Wrong id received %s", id)
 	}
 
 	// Get a shallow copy of the pipeline

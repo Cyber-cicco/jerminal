@@ -36,7 +36,7 @@ func main() {
 		),
 		Stages("test_stages",
 			Stage("test_stage_1",
-				SH("touch", "/home/hijokaidan/PC/jerminal/test_1.txt"),
+				SH("touch", "test_1.txt"),
 			),
 			Stage("test",
 				Exec(func(p *Pipeline, ctx context.Context) error {

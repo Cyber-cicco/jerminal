@@ -36,7 +36,8 @@ type Pipeline struct {
 	events        []pipelineEvents            // components to be executed
 	Inerror       bool                        `json:"in-error"` // Indicate if a fatal error has been encountered
 	globalState   *config.GlobalStateProvider // L'état de l'application
-	StartTime     time.Time                   `json:"start-time"`   // Début de la pipeline
+	StartTime     time.Time                   `json:"start-time"` // Début de la pipeline
+	EndTime       time.Time                   `json:"end-time"` // Fin de la pipeline
 	Diagnostic    *Diagnostic                 `json:"diagnostics"`  // Infos about the current process. It can change based on what stage is getting executed.
 	ElapsedTime   int64                       `json:"elapsed-time"` // Time it took to run the Pipeline
 
@@ -67,7 +68,8 @@ func (p *Pipeline) ExecutePipeline(ctx context.Context) error {
 			diag.LogEvent(CRITICAL, fmt.Sprintf("Agent could not terminate properly because of error %v", err))
 		}
 		lastErr = err
-		p.ElapsedTime = time.Now().UnixMilli() - p.StartTime.UnixMilli()
+        p.EndTime = time.Now()
+		p.ElapsedTime = p.EndTime.UnixMilli() - p.StartTime.UnixMilli()
 		diag.LogEvent(INFO, fmt.Sprintf("Pipeline finished in %d ms", p.ElapsedTime))
 		if !p.Inerror {
 			p.RanSuccessfully()
@@ -105,7 +107,7 @@ func (p *Pipeline) ExecutePipeline(ctx context.Context) error {
 	diag.LogEvent(INFO, "starting main loop")
 	//Executes all the things from the pipeline
 	for _, evt := range p.events {
-        var stageErr error
+		var stageErr error
 		select {
 		case <-ctx.Done():
 			diag.LogEvent(WARN, "Pipeline got canceled before finishing")
@@ -114,15 +116,15 @@ func (p *Pipeline) ExecutePipeline(ctx context.Context) error {
 			err := evt.ExecuteInPipeline(p, ctx)
 			if err != nil {
 				if evt.GetShouldStopIfError() {
-                    stageErr = err
+					stageErr = err
 					p.Inerror = true
 					diag.LogEvent(ERROR, fmt.Sprintf("got blocking error in executable %s : %v", evt.GetName(), err))
 				}
 			}
 		}
-        if stageErr != nil {
-            break
-        }
+		if stageErr != nil {
+			break
+		}
 	}
 	diag.LogEvent(DEBUG, "End of execution")
 	return lastErr

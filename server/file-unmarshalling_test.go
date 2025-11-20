@@ -39,7 +39,7 @@ func TestUnmarshall(t *testing.T) {
         fmt.Printf("%v : %s\n", key, val)
     }
 
-    if name, ok := res["name"]; !ok || name != "test3" {
+    if name, ok := res["name"]; !ok || name != "vaubernier-fidelite-build" {
         t.Fatalf("Field name should exist")
     }
 }
