@@ -38,7 +38,6 @@ func (c *Config) UpdateConfig() error {
 		return err
 	}
 	c.setupEnv()
-    fmt.Printf("c.AgentDir: %v\n", c.AgentDir)
 	return nil
 }
 
@@ -57,7 +56,6 @@ func expandStringFields(v reflect.Value) {
 	switch v.Kind() {
 	case reflect.String:
 		if v.CanSet() {
-            fmt.Printf("v: %v\n", v)
 			v.SetString(os.ExpandEnv(v.String()))
 		}
 	case reflect.Struct:

@@ -126,6 +126,7 @@ func (p *Pipeline) ExecutePipeline(ctx context.Context) error {
 			break
 		}
 	}
+
 	diag.LogEvent(DEBUG, "End of execution")
 	return lastErr
 }
@@ -213,7 +214,7 @@ func setPipelineWithState(name string, agentProvider AgentProvider, config *conf
 			LogLevel: INFO,
 		},
 	}
-	p.pipelineDir = filepath.Join(p.globalState.PipelineDir, p.GetId())
+	p.pipelineDir = filepath.Join(p.globalState.PipelineDir, p.Name)
 	return &p
 }
 func (p *Pipeline) ResetDiag() {
